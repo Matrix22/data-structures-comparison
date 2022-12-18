@@ -24,47 +24,14 @@
 
 #include "./include/red_black_tree.h"
 
-/**
- * @brief Create a red-black tree object. Allocation may fail if there
- * is not enough memory on heap or cmp function is not valid
- * (data arranges in red-black tree by comparation) in this case an exception will be thrown.
- * 
- * @param cmp pointer to a function to compare two sets of data
- * @param frd pointer to a function to free content of one data
- * @param data_size length in bytes of the data data type
- * @return rbk_tree_t* a new allocated red-black tree object or `NULL` (if function failed)
- */
-rbk_tree_t* create_rbk(compare_func cmp, free_func frd, size_t data_size) {
-    /* Check if compareData function is valid */
-    if (NULL == cmp) {
-        errno = EINVAL;
-        perror("Compare function undefined for red-black tree");
-        return NULL;
-    }
-
-    /* Check if the data size of one node is valid */
-    if (0 == data_size) {
-        errno = EINVAL;
-        perror("Data size at creation is zero");
-        return NULL;
-    }
-
-    /* Allocate a new red-black tree object on heap */
+rbk_tree_t* create_rbk() {
     rbk_tree_t *new_tree = malloc(sizeof(*new_tree));
 
-    /* Check if red-black tree object was allocated */
     if (NULL != new_tree) {
-
-        /* Set function pointers */
-        new_tree->cmp = cmp;
-        new_tree->frd = frd;
-
-        /* Create `nil` node */
         new_tree->nil = malloc(sizeof(*new_tree->nil));
 
-        /* Set default values for a `nil` cell*/
         if (NULL != new_tree->nil) {
-            new_tree->nil->data = NULL;
+            new_tree->nil->data = INT32_MIN;
             new_tree->nil->color = BLACK;
             new_tree->nil->count = 1;
             new_tree->nil->left = new_tree->nil->right = new_tree->nil;
@@ -74,107 +41,49 @@ rbk_tree_t* create_rbk(compare_func cmp, free_func frd, size_t data_size) {
             perror("Not enough memory for nil red-black allocation");
         }
 
-        /* Set root and size of the red-black tree */
         new_tree->root = new_tree->nil;
-        new_tree->data_size = data_size;
         new_tree->size = 0;
     } else {
         errno = ENOMEM;
         perror("Not enough memory for red-black allocation");
     }
     
-    /* Return a new allocated red-black tree object or `NULL` */
     return new_tree;
 }
 
-/**
- * @brief Create an red-black node object. Allocation of a new node
- * may fail if address of data is not valid or if not enough memory
- * is left on heap, in this case function will return `nil` and an exception
- * will be thrown.
- * 
- * @param tree an allocated red-black tree object
- * @param data pointer to an address of a generic data
- * @return rbk_tree_node_t* a new allocated red-black tree node object or `nil`
- */
-static rbk_tree_node_t* create_rbk_node(const rbk_tree_t * const __restrict__ tree, const void * __restrict__ data) {
-    /* Check if data address is valid */
-    if (NULL == data) {
-        return tree->nil;
+static rbk_tree_node_t* create_rbk_node(const rbk_tree_t * const __restrict__ tree, int32_t data) {
+    if (NULL == tree) {
+        errno = EINVAL;
+        perror("Invalid red-black tree object");
+
+        return NULL;
     }
 
-    /* Allocate a new node on the heap */
     rbk_tree_node_t *new_node = malloc(sizeof(*new_node));
 
-    /* Check if allocation went successfully */
     if (NULL != new_node) {
-
-        /* Set default node data */
         new_node->right = new_node->left = tree->nil;
         new_node->parent = tree->nil;
         new_node->count = 1;
         new_node->color = RED;
-
-        /* Allocate heap memory for data */
-        new_node->data = malloc(tree->data_size);
-
-        /* Check if memory allocation went right */
-        if (NULL != new_node->data) {
-
-            /*
-             * Copy all bytes from data pointer
-             * to memory allocated on heap
-             */
-            memcpy(new_node->data, data, tree->data_size);
-        } else {
-            free(new_node);
-            new_node = tree->nil;
-
-            errno = ENOMEM;
-            perror("Not enough memory for node red-black data allocation");
-        }
+        new_node->data = data;
     } else {
         new_node = tree->nil;
         errno = ENOMEM;
         perror("Not enough memory for node red-black allocation");
     }
 
-    /* Return a new red-black tree node object or `nil` */
     return new_node;
 }
 
-/**
- * @brief A helper function for free_rbk function.
- * Function will iterate through all nodes recursively
- * by Left-Right-Root principle.
- * 
- * @param tree an allocated red-black tree object
- * @param root pointer to pointer of current red-black node object
- */
 static void free_rbk_helper(const rbk_tree_t * const __restrict__ tree, rbk_tree_node_t ** const __restrict__ root) {
-    /* Check if current node is valid */
     if (tree->nil == *root) {
         return;
     }
 
-    /* Recursive calls */
     free_rbk_helper(tree, &(*root)->left);
     free_rbk_helper(tree, &(*root)->right);
 
-    /* Free content of the data pointer */
-    if ((NULL != tree->frd) && (NULL != (*root)->data)) {
-        tree->frd((*root)->data);
-    }
-
-    /* Free data pointer */
-    if (NULL != (*root)->data) {
-        free((*root)->data);
-    }
-
-    /* Set data pointer as `NULL` */
-    (*root)->data = NULL;
-
-    /* Free red-black node pointer */
     if (tree->nil != *root) {
         free(*root);
 
@@ -182,30 +91,12 @@ static void free_rbk_helper(const rbk_tree_t * const __restrict__ tree, rbk_tree
     }
 }
 
-/**
- * @brief Function to free every byte of memory allocated for a specific
- * red-black tree object. The function will iterate through all nodes
- * and will free the data content according to frd function provided
- * by user at creation of red-black tree, however if no free function
- * was provided it means that data pointer does not contain any dynamically
- * allocated elements.
- * 
- * @param tree an allocated red-black tree object
- * @return scl_error_t enum object for handling errors
- */
-scl_error_t free_rbk(rbk_tree_t * const __restrict__ tree) {
-    /* Check if tree needs to be freed */
+error_t free_rbk(rbk_tree_t * const __restrict__ tree) {
     if (NULL != tree) {
-
-        /* Free every node from red-black tree */
         free_rbk_helper(tree, &tree->root);
         
-        /* Free `nil` cell*/
         free(tree->nil);
-
         tree->nil = NULL;
-
-        /* Free red-black tree object */
         free(tree);
 
         return SCL_OK;
@@ -214,49 +105,31 @@ scl_error_t free_rbk(rbk_tree_t * const __restrict__ tree) {
     return SCL_NULL_RBK;
 }
 
-/**
- * @brief Function to rotate to left a subtree starting 
- * from fix_node red-black tree node object. Function may fail
- * if red-black tree object is not allocated or red-black tree node
- * object is `nil`.
- * 
- * @param tree an allocated red-black tree object
- * @param fix_node pointer to red-black tree node object to rotate
- */
 static void rbk_rotate_left(rbk_tree_t * const __restrict__ tree, rbk_tree_node_t * const fix_node) {
-    /* Check if input data is valid */
     if ((NULL == tree) || (tree->nil == fix_node)) {
         return;
     }
 
-    /* Check if rotation may happen */
     if (tree->nil == fix_node->right) {
         return;
     }
 
-    /* Set new rotated sub-root */
     rbk_tree_node_t * const rotate_node = fix_node->right;
 
-    /* Update child of fix_node */
     fix_node->right = rotate_node->left;
 
-    /* Update child parent to fix_node */
     if (tree->nil != rotate_node->left) {
         rotate_node->left->parent = fix_node;
     }
 
-    /* Rotation to left */
     rotate_node->left = fix_node;
 
-    /* Update new sub-root parent */
     rotate_node->parent = fix_node->parent;
 
-    /* Update fix_node parent to new sub-root */
     fix_node->parent = rotate_node;
 
-    /* Update new sub-root links to the rest of tree */
     if (tree->nil != rotate_node->parent) {
-        if (tree->cmp(rotate_node->data, rotate_node->parent->data) >= 1) {
+        if (rotate_node->data > rotate_node->parent->data) {
             rotate_node->parent->right = rotate_node;
         } else {
             rotate_node->parent->left = rotate_node;
@@ -266,49 +139,29 @@ static void rbk_rotate_left(rbk_tree_t * const __restrict__ tree, rbk_tree_node_
     }
 }
 
-/**
- * @brief Function to rotate to right a subtree starting 
- * from fix_node red-black tree node object. Function may fail
- * if red-black tree object is not allocated or red-black tree node
- * object is `nil`.
- * 
- * @param tree an allocated red-black tree object
- * @param fix_node pointer to red-black tree node object to rotate
- */
 static void rbk_rotate_right(rbk_tree_t * const __restrict__ tree, rbk_tree_node_t * const fix_node) {
-    /* Check if input data is valid */
     if ((NULL == tree) || (tree->nil == fix_node)) {
         return;
     }
 
-    /* Check if rotation may happen */
     if (tree->nil == fix_node->left) {
         return;
     }
 
-    /* Set new rotated sub-root */
     rbk_tree_node_t * const rotate_node = fix_node->left;
 
-    /* Update child of fix_node */
     fix_node->left = rotate_node->right;
 
-    /* Update child parent to fix_node */
     if (tree->nil != rotate_node->right) {
         rotate_node->right->parent = fix_node;
     }
 
-    /* Rotation to right */
     rotate_node->right = fix_node;
-
-    /* Update new sub-root parent */
     rotate_node->parent = fix_node->parent;
-
-    /* Update fix_node parent to new sub-root */
     fix_node->parent = rotate_node;
 
-    /* Update new sub-root links to the rest of tree */
     if (tree->nil != rotate_node->parent) {
-        if (tree->cmp(rotate_node->data, rotate_node->parent->data) >= 1) {
+        if (rotate_node->data > rotate_node->parent->data) {
             rotate_node->parent->right = rotate_node;
         } else {
             rotate_node->parent->left = rotate_node;
@@ -318,18 +171,7 @@ static void rbk_rotate_right(rbk_tree_t * const __restrict__ tree, rbk_tree_node
     }
 }
 
-/**
- * @brief Helper function to fix up the balance of a rbk_tree_t
- * after insertion of one node. Function may fail if current
- * working tree and node is `nil`.
- * 
- * @param tree an allocated red-black tree object
- * @param fix_node a pointer to a red-black tree node object to start
- * fixing the balance
- * @return scl_error_t enum object for handling errors
- */
-static scl_error_t rbk_insert_fix_node_up(rbk_tree_t * const __restrict__ tree, rbk_tree_node_t *fix_node) {
-    /* Check if input data is valid */
+static error_t rbk_insert_fix_node_up(rbk_tree_t * const __restrict__ tree, rbk_tree_node_t *fix_node) {
     if (NULL == tree) {
         return SCL_NULL_RBK;
     }
@@ -338,262 +180,151 @@ static scl_error_t rbk_insert_fix_node_up(rbk_tree_t * const __restrict__ tree, 
         return SCL_FIXING_NULL_TREE_NODE;
     }
 
-    /* Set parent node pointer as default value */
     rbk_tree_node_t *parent_fix_node = tree->nil;
 
-    /* Fix up the red black tree */
     while ((tree->root != fix_node) && (BLACK != fix_node->color) && (BLACK != fix_node->parent->color)) {
-
-        /* Selected node is not root so check brother color */
-        
-        /* Set initial data */
         parent_fix_node = fix_node->parent;
         rbk_tree_node_t *brother_node = tree->nil;
 
-        /* Find brother node */
         if (parent_fix_node->parent->left == parent_fix_node) {
             brother_node = parent_fix_node->parent->right;
         } else {
             brother_node = parent_fix_node->parent->left;
         }
 
-        /* Fix tree according to brother's color */
-        if (BLACK == brother_node->color) {
-
-            /* Brother's color is black check what rotations we should make */
-            
+        if (BLACK == brother_node->color) {      
             if (parent_fix_node->left == fix_node) {
                 if (parent_fix_node->parent->left == parent_fix_node) {
-
-                    /* Left-Left rotation case*/
-
-                    /* Recolouring nodes */
                     parent_fix_node->color = BLACK;
                     parent_fix_node->parent->color = RED;
                     
-                    /* Rotation */
                     rbk_rotate_right(tree, parent_fix_node->parent);
 
-                    /* Repoint selected node*/
                     fix_node = parent_fix_node;
                 } else {
-
-                    /* Right-Left Rotation */
-
-                    /* Recolouring nodes */
                     fix_node->color = BLACK;
                     parent_fix_node->parent->color = RED;
 
-                    /* Rotation */
                     rbk_rotate_right(tree, parent_fix_node);
                     rbk_rotate_left(tree, fix_node->parent);
                 }
             } else {
                 if (parent_fix_node->parent->left == parent_fix_node) {
-
-                    /* Left-Right Rotation */
-
-                    /* Recolouring nodes */
                     fix_node->color = BLACK;
                     parent_fix_node->parent->color = RED;
                     
-                    /* Rotation */
                     rbk_rotate_left(tree, parent_fix_node);
                     rbk_rotate_right(tree, fix_node->parent);
                 } else {
-
-                    /* Right-Right Rotation */
-
-                    /* Recolouring nodes */
                     parent_fix_node->color = BLACK;
                     parent_fix_node->parent->color = RED;
                     
-                    /* Rotation */
                     rbk_rotate_left(tree, parent_fix_node->parent);
 
-                    /* Repoint selected node */
                     fix_node = parent_fix_node;
                 }
             }
         } else if (RED == brother_node->color) {
-
-            /* Brother's color is red so recolor the nodes */
             parent_fix_node->parent->color = RED;
             brother_node->color = BLACK;
             parent_fix_node->color = BLACK;
 
-            /* Repoint selected node */
             fix_node = parent_fix_node->parent;
         } else {
-
-            /* Color is not RED or BLACK something went wrong */
             return SCL_UNKNOWN_RBK_COLOR;
         }
     }
 
-    /* Make sure root is black */
     tree->root->color = BLACK;
 
     return SCL_OK;
 }
 
-/**
- * @brief Function to insert one generic data to a red-black.
- * Function may fail if red-black or data os not valid (have
- * address `NULL`) or not enough heap memory is left. You
- * CANNOT insert different data types into red-black tree, this
- * will evolve into an uknown behavior or segmentation fault.
- * 
- * @param tree an allocated red-black tree object
- * @param data pointer to an address of a generic data type
- * @return scl_error_t enum object for handling errors
- */
-scl_error_t rbk_insert(rbk_tree_t * const __restrict__ tree, const void * __restrict__ data) {
-    /* Check if tree and data are valid */
+error_t rbk_insert(rbk_tree_t * const __restrict__ tree, int32_t data) {
     if (NULL == tree) {
         return SCL_NULL_RBK;
     }
 
-    if (NULL == data) {
-        return SCL_INVALID_DATA;
-    }
-
-    /* Set iterator pointers */
     rbk_tree_node_t *iterator = tree->root;
     rbk_tree_node_t *parent_iterator = tree->nil;
 
-    /* Find a valid position for insertion */
     while (tree->nil != iterator) {
         parent_iterator = iterator;
 
-        if (tree->cmp(iterator->data, data) >= 1) {
+        if (iterator->data > data) {
             iterator = iterator->left;
-        } else if (tree->cmp(iterator->data, data) <= -1) {
+        } else if (iterator->data < data) {
             iterator = iterator->right;
         } else {
-
-            /*
-             * Node already exists in current red-black tree
-             * increment count value of node
-             */
             ++(iterator->count);
-            return 0;
+            return SCL_OK;
         }
     }
 
-    /* Create a new red-black node object */
     rbk_tree_node_t *new_node = create_rbk_node(tree, data);
 
-    /* Check if new red-black node was created */
     if (tree->nil == new_node) {
         return SCL_NOT_ENOUGHT_MEM_FOR_NODE;
     }
     
-    scl_error_t err = SCL_OK;
+    error_t err = SCL_OK;
 
     if (tree->nil != parent_iterator) {
-
-        /* Update parent links */
         new_node->parent = parent_iterator;
 
-        /* Update children links */
-        if (tree->cmp(parent_iterator->data, new_node->data) >= 1) {
+        if (parent_iterator->data > new_node->data) {
             parent_iterator->left = new_node;
         } else {
             parent_iterator->right = new_node;
         }
 
-        /* Fix the red black tree*/
         err = rbk_insert_fix_node_up(tree, new_node);
     } else {
-
-        /* Created node is root node */
         tree->root = new_node;
         new_node->color = BLACK;
     }
 
-    /* Increase red-black tree size */
     ++(tree->size);
 
-    /* Insertion in red-black went successfully */
     return err;
 }
 
-/**
- * @brief Function to search node in red-black tree O(log N).
- * Function will start searching from red-black tree root and will
- * search the data value in all tree.
- * 
- * @param tree an allocated red-black tree object
- * @param data pointer to an address of a generic data type
- * @return rbk_tree_node_t* red-black tree node object containing
- * data value or `nil` in case no such node exists
- */
-static rbk_tree_node_t* rbk_find_node(const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data) {
-    /* Check if input data is valid */
+static rbk_tree_node_t* rbk_find_node(const rbk_tree_t * const __restrict__ tree, int32_t data) {
     if ((NULL == tree) || (tree->nil == tree->root)) {
         return tree->nil;
     }
 
-    /* Set iterator pointer */
     rbk_tree_node_t *iterator = tree->root;
 
-    /* Search for imput data (void *data) in all tree */
     while (tree->nil != iterator) {
-        if (tree->cmp(iterator->data, data) <= -1) {
+        if (iterator->data < data) {
             iterator = iterator->right;
-        } else if (tree->cmp(iterator->data, data) >= 1) {
+        } else if (iterator->data > data) {
             iterator = iterator->left;
         } else {
             return iterator;
         }
     }
 
-    /* Data was not found */
     return tree->nil;
 }
 
-/**
- * @brief Function to search data in red-black tree O(log N).
- * Function will start searching from red-black tree root and will
- * search the data value in all tree.
- * 
- * @param tree an allocated red-black tree object
- * @param data pointer to an address of a generic data type
- * @return const void* red-black tree node data object containing
- * data value or `NULL` in case node is nil (not found)
- */
-const void* rbk_find_data(const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data) {
-    /* Check if input data is valid */
-    if ((NULL == tree) || (NULL == data)) {
-        return NULL;
+int32_t rbk_find_data(const rbk_tree_t * const __restrict__ tree, int32_t data) {
+    if ((NULL == tree)) {
+        return INT32_MIN;
     }
 
-    /* Get the nide data or `NULL` if node is `nil` */
     return rbk_find_node(tree, data)->data;
 }
 
-/**
- * @brief Function to swap two nodes from a red black tree.
- * This function is a subroutine of the delete function to 
- * change deleted node with its inorder successor.
- * 
- * @param dest_node red black node object to rewrite data bytes from src_node
- * @param src_node red black node object to copy data bytes
- * @return scl_error_t enum object for handling errors
- */
-static scl_error_t rbk_swap_nodes(rbk_tree_t * const __restrict__ tree, rbk_tree_node_t * const __restrict__ dest_node, rbk_tree_node_t * const __restrict__ src_node) {
-    /* Check if swap is posible */
+static error_t rbk_swap_nodes(rbk_tree_t * const __restrict__ tree, rbk_tree_node_t * const __restrict__ dest_node, rbk_tree_node_t * const __restrict__ src_node) {
     if ((tree->nil == dest_node) || (tree->nil == src_node)) {
         return SCL_CANNOT_SWAP_DATA;
     }
 
-    /* Change color of nodes */
     rbk_tree_node_color_t temp_color = dest_node->color;
     dest_node->color = src_node->color;
     src_node->color = temp_color;
-
-    /* Interchange the right child */
 
     rbk_tree_node_t *temp = dest_node->right;
 
@@ -609,8 +340,6 @@ static scl_error_t rbk_swap_nodes(rbk_tree_t * const __restrict__ tree, rbk_tree
         src_node->right->parent = src_node;
     }
 
-    /* Interchange the left child */
-
     temp = dest_node->left;
 
     dest_node->left = src_node->left;
@@ -624,8 +353,6 @@ static scl_error_t rbk_swap_nodes(rbk_tree_t * const __restrict__ tree, rbk_tree
     if (tree->nil != src_node->left) {
         src_node->left->parent = src_node;
     }
-
-    /* Interchange parents of the two nodes */
 
     temp = dest_node->parent;
 
@@ -653,64 +380,9 @@ static scl_error_t rbk_swap_nodes(rbk_tree_t * const __restrict__ tree, rbk_tree
         tree->root = src_node;
     }
 
-    /* All good */
     return SCL_OK;
 }
 
-/**
- * @brief Function to calculate the level(depth) of
- * a node in red-black tree. Function may fail if input node
- * is not valid (allocated).
- * 
- * @param tree an allocated red-black tree object
- * @param base_node red-black node object to calculate its level
- * @return int32_t level of input red-black object node
- */
-static int32_t rbk_node_level(const rbk_tree_t * const __restrict__ tree, const rbk_tree_node_t * __restrict__ base_node) {
-    /* Check if input data is valid */
-    if (tree->nil == base_node) {
-        return -1;
-    }
-
-    /* Set level of node as -1 */
-    int32_t level_count = -1;
-
-    /* Compute level of input node */
-    while (tree->nil != base_node) {
-        base_node = base_node->parent;
-        ++level_count;
-    }
-
-    /* Return node level */
-    return level_count;
-}
-
-/**
- * @brief Function to calculate the level(depth) of
- * a node in red-black tree. Function may fail if input node
- * is not valid (allocated).
- * 
- * @param tree an allocated red-black tree object
- * data pointer to a value type to find level of node
- * containing current data
- * @return int32_t level of input red-black object node
- */
-int32_t rbk_data_level(const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data) {
-    if ((NULL == tree) || (NULL == data)) {
-        return -1;
-    }
-
-    return rbk_node_level(tree, rbk_find_node(tree, data));
-}
-
-/**
- * @brief Function to check whether an red-black
- * tree object is empty or not.
- * 
- * @param tree an allocated red-black tree
- * @return uint8_t 1 if red-black tree is empty or not allocated
- * 0 if it is not empty
- */
 uint8_t is_rbk_empty(const rbk_tree_t * const __restrict__ tree) {
     if ((NULL == tree) || (tree->nil == tree->root) || (0 == tree->size)) {
         return 1;
@@ -719,26 +391,14 @@ uint8_t is_rbk_empty(const rbk_tree_t * const __restrict__ tree) {
     return 0;
 }
 
-/**
- * @brief Function to get root node of the red-black tree.
- * 
- * @param tree an allocated red-black tree object
- * @return const void* the root node data of the current red-black tree
- */
-const void* get_rbk_root(const rbk_tree_t * const __restrict__ tree) {
+int32_t get_rbk_root(const rbk_tree_t * const __restrict__ tree) {
     if (NULL == tree) {
-        return NULL;
+        return INT32_MIN;
     }
 
     return tree->root->data;
 }
 
-/**
- * @brief Function to get size of the red-black tree.
- * 
- * @param tree an allocated red-black tree object
- * @return size_t size of the current red-black tree
- */
 size_t get_rbk_size(const rbk_tree_t * const __restrict__ tree) {
     if (NULL == tree) {
         return SIZE_MAX;
@@ -747,15 +407,6 @@ size_t get_rbk_size(const rbk_tree_t * const __restrict__ tree) {
     return tree->size;
 }
 
-/**
- * @brief Function to get node with maximum data value.
- * Function will search the maximum considering root node
- * as the beginning of the tree (root != tree(root)).
- * 
- * @param tree an allocated red-black tree object
- * @param root pointer to current working red-black node object
- * @return rbk_tree_node_t* pointer to maximum node value from red-black
- */
 static rbk_tree_node_t* rbk_max_node(const rbk_tree_t * const __restrict__ tree, rbk_tree_node_t * __restrict__ root) {
     if (tree->nil != root) {
         while (tree->nil != root->right) {
@@ -766,15 +417,6 @@ static rbk_tree_node_t* rbk_max_node(const rbk_tree_t * const __restrict__ tree,
     return root;
 }
 
-/**
- * @brief Function to get node with minimum data value.
- * Function will search the minimum considering root node
- * as the beginning of the tree (root != tree(root)).
- * 
- * @param tree an allocated red-black tree object
- * @param root pointer to current working red-black node object
- * @return rbk_tree_node_t* pointer to minimum node value from red-black
- */
 static rbk_tree_node_t* rbk_min_node(const rbk_tree_t * const __restrict__ tree, rbk_tree_node_t * __restrict__ root) {
     if (tree->nil != root) {
         while (tree->nil != root->left) {
@@ -785,58 +427,23 @@ static rbk_tree_node_t* rbk_min_node(const rbk_tree_t * const __restrict__ tree,
     return root;
 }
 
-/**
- * @brief Function to get the maximum data value from red-black.
- * Function will search the maximum data considering subroot data
- * as the beginning of the tree (root != tree(root))
- * 
- * @param tree an allocated red-black tree object
- * @param subroot_data pointer to a data value that represents a node
- * to start searcing for maximum node
- * @return const void* pointer to maximum data value from red-black tree
- */
-const void* rbk_max_data(const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ subroot_data) {
-    /* Check if input data is valid */
-    if ((NULL == tree) || (NULL == subroot_data)) {
-        return NULL;
+int32_t rbk_max_data(const rbk_tree_t * const __restrict__ tree) {
+    if (NULL == tree) {
+        return INT32_MIN;
     }
 
-    /* Get maximum data from red-black or `NULL` is node is `nil` */
-    return rbk_max_node(tree, rbk_find_node(tree, subroot_data))->data;
+    return rbk_max_node(tree, tree->root)->data;
 }
 
-/**
- * @brief Function to get the minimum data value from red-black.
- * Function will search the minimum data considering subroot data
- * as the beginning of the tree (root != tree(root))
- * 
- * @param tree an allocated red-black tree object
- * @param subroot_data pointer to a data value that represents a node
- * to start searcing for minimum node
- * @return void* pointer to minimum data value from red-black tree
- */
-const void* rbk_min_data(const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ subroot_data) {
-    /* Check if input data is valid */
-    if ((NULL == tree) || (NULL == subroot_data)) {
-        return NULL;
+int32_t rbk_min_data(const rbk_tree_t * const __restrict__ tree) {
+    if (NULL == tree) {
+        return INT32_MIN;
     }
 
-    /* Get minimum data from red-black or `NULL` is node is `nil` */
-    return rbk_min_node(tree, rbk_find_node(tree, subroot_data))->data;
+    return rbk_min_node(tree, tree->root)->data;
 }
 
-/**
- * @brief Helper function to fix up the balance of a rbk_tree_t
- * after deletion of one node. Function may fail if current
- * working tree and node are `NULL/nil`.
- * 
- * @param tree an allocated red-black tree object
- * @param fix_node a pointer to a red-black tree node object that is a double black
- * @param parent_fix_node a pointer to a red-black tree node object, parent of double black node
- * @return scl_error_t enum object for handling errors
- */
-static scl_error_t rbk_delete_fix_node_up(rbk_tree_t * const __restrict__ tree, rbk_tree_node_t *fix_node, rbk_tree_node_t *parent_fix_node) {
-    /* Check if input data is valid */
+static error_t rbk_delete_fix_node_up(rbk_tree_t * const __restrict__ tree, rbk_tree_node_t *fix_node, rbk_tree_node_t *parent_fix_node) {
     if (NULL == tree) {
         return SCL_NULL_RBK;
     }
@@ -845,152 +452,84 @@ static scl_error_t rbk_delete_fix_node_up(rbk_tree_t * const __restrict__ tree, 
         return SCL_FIXING_NULL_TREE_NODE;
     }
 
-    /* Set the brother of the double black node */
     rbk_tree_node_t *brother_node = tree->nil;
 
-    /* Fix the red-black tree */
     while ((tree->root != fix_node) && (BLACK == fix_node->color)) {
         if (parent_fix_node->left == fix_node) {
-
-            /* Double black node is a left child */
-
-            /* Find the brother node */
             brother_node = parent_fix_node->right;
 
             if (RED == brother_node->color) {
-
-                /* Case 1: brother is a red node */
-
-                /* Recolor the nodes */
                 brother_node->color = BLACK;
                 parent_fix_node->color = RED;
 
-                /* Rotate the parent to the left */
                 rbk_rotate_left(tree, parent_fix_node);
 
-                /* Update the brother node */
                 brother_node = parent_fix_node->right;
             }
 
             if ((BLACK == brother_node->left->color) && (BLACK == brother_node->right->color)) {
-
-                /* Case 2: brother is a black node and its children are black */
-
-                /* Recolor the brother node */
                 brother_node->color = RED;
 
-                /* Propagate the double black problem in higher hierarchy */
                 fix_node = parent_fix_node;
             } else {
                 if (BLACK == brother_node->right->color) {
-
-                    /* Case 3: brother node is black, left child is red and right is black */
-
-                    /* Recolor nodes */
                     brother_node->left->color = BLACK;
                     brother_node->color = RED;
 
-                    /* Rotate brother to the right */
                     rbk_rotate_right(tree, brother_node);
                     
-                    /* Update the new brother */
                     brother_node = parent_fix_node->right;
                 }
-
-                /* Case 4: brother node is black and right child is red */
-
-                /* Recolor the nodes */
                 brother_node->color = parent_fix_node->color;
                 parent_fix_node->color = BLACK;
                 brother_node->right->color = BLACK;
 
-                /* Rotate parent node to left */
                 rbk_rotate_left(tree, parent_fix_node);
 
-                /* Tree is fixed */
                 fix_node = tree->root;
             }
         } else {
-
-            /* Double black node is a right child */
-
-            /* Find the brother node */
             brother_node = parent_fix_node->left;
 
             if (RED == brother_node->color) {
-
-                /* Case 1: brother is a red node */
-
-                /* Recolor the nodes */
                 brother_node->color = BLACK;
                 parent_fix_node->color = RED;
 
-                /* Rotate the parent to the right */
                 rbk_rotate_right(tree, parent_fix_node);
 
-                /* Update the brother node */
                 brother_node = parent_fix_node->left;
             }
 
             if ((BLACK == brother_node->right->color) && (BLACK == brother_node->left->color)) {
-
-                /* Case 2: brother is a black node and its children are black */
-
-                /* Recolor the brother node */
                 brother_node->color = RED;
 
-                /* Propagate the double black problem in higher hierarchy */
                 fix_node = parent_fix_node;
             } else {
                 if (BLACK == brother_node->left->color) {
-
-                    /* Case 3: brother node is black, right child is red and left is black */
-
-                    /* Recolor nodes */
                     brother_node->right->color = BLACK;
                     brother_node->color = RED;
 
-                    /* Rotate brother to the left */
                     rbk_rotate_left(tree, brother_node);
 
-                    /* Update the new brother */
                     brother_node = parent_fix_node->left;
                 }
-
-                /* Case 4: brother node is black and right child is red */
-
-                /* Recolor the nodes */
                 brother_node->color = parent_fix_node->color;
                 parent_fix_node->color = BLACK;
                 brother_node->left->color = BLACK;
 
-                /* Rotate parent node to right */
                 rbk_rotate_right(tree, parent_fix_node);
 
-                /* Tree is fixed */
                 fix_node = tree->root;
             }
         }
     }
 
-    /* Recolor the root as BLACK */
     fix_node->color = BLACK;
 
     return SCL_OK;
 }
 
-/**
- * @brief Function to delete one generic data from a red-black.
- * Function may fail if input data is not valid or if
- * changing the data fails. You can delete one data at a time
- * and MUST specify a valid red-black tree and a valid data pointer
- * 
- * @param tree an allocated red-black tree object
- * @param data pointer to an address of a generic data to be deleted
- * @return scl_error_t enum object for handling errors
- */
-scl_error_t rbk_delete(rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data) {
-    /* Check if input data is valid */
+error_t rbk_delete(rbk_tree_t * const __restrict__ tree, int32_t data) {
     if (NULL == tree) {
         return SCL_NULL_RBK;
     }
@@ -999,83 +538,57 @@ scl_error_t rbk_delete(rbk_tree_t * const __restrict__ tree, const void * const 
         return SCL_DELETE_FROM_EMPTY_OBJECT;
     }
 
-    if (NULL == data) {
-        return SCL_INVALID_DATA;
-    }
-
-    /* Find node to delete */
     rbk_tree_node_t *delete_node = rbk_find_node(tree, data);
 
-    /* Delete node is not in the current working tree */
     if (tree->nil == delete_node) {
         return SCL_DATA_NOT_FOUND_FOR_DELETE;
     }
 
-    /* Node has two children swap with it's inorder successor and delete successor */
     if ((tree->nil != delete_node->left) && (tree->nil != delete_node->right)) {
-
-        /* Find a replacement for selected node */
         rbk_tree_node_t *delete_successor = rbk_min_node(tree, delete_node->right);
                 
-        /* Replace the selected red-black node and remove the dublicate */
-        scl_error_t err = rbk_swap_nodes(tree, delete_node, delete_successor);
+        error_t err = rbk_swap_nodes(tree, delete_node, delete_successor);
 
         if (SCL_OK != err) {
             return err;
         }
     }
 
-    /* Variable to check if fixing is needed */
     uint8_t need_fixing_tree = 1;
 
-    /* Set the child of the deleted node */
     rbk_tree_node_t *delete_node_child = tree->nil;
 
-    /* delete node has only one child */
     if (tree->nil != delete_node->left) {
         delete_node_child = delete_node->left;
 
-        /* Check if deletion will not make a double black exception */
         if ((RED == delete_node_child->color) && (BLACK == delete_node->color)) {
             need_fixing_tree = 0;
 
-            /* Recolor red node into a red one */
             delete_node_child->color = BLACK;
         }
 
-        /* Update child with it's grandparent */
         delete_node_child->parent = delete_node->parent;
 
-        /* Update grandparent with it's grandchild */
         if (tree->nil != delete_node->parent) {
             if (delete_node->parent->right == delete_node) {
                 delete_node->parent->right = delete_node_child;
             } else {
                 delete_node->parent->left = delete_node_child;
             }
-        } else {
-
-            /*
-             * Selected node was root
-             * Update a new root
-             */            
+        } else {         
             tree->root = delete_node_child;
         }
     } else if (tree->nil != delete_node->right) {
         delete_node_child = delete_node->right;
 
-        /* Check if deletion will not make a double black exception */
         if ((RED == delete_node_child->color) && (BLACK == delete_node->color)) {
             need_fixing_tree = 0;
 
-            /* Recolor red node into a red one */
             delete_node_child->color = BLACK;
         }
 
-        /* Update child with it's grandparent */
         delete_node_child->parent = delete_node->parent;
 
-        /* Update grandparent with it's grandchild */
         if (tree->nil != delete_node->parent) {
             if (delete_node->parent->right == delete_node) {
                 delete_node->parent->right = delete_node_child;
@@ -1083,21 +596,13 @@ scl_error_t rbk_delete(rbk_tree_t * const __restrict__ tree, const void * const 
                 delete_node->parent->left = delete_node_child;
             }
         } else {
-
-            /*
-             * Selected node was root
-             * Update a new root
-             */
             tree->root = delete_node_child;
         }
     } else {
-
-        /* Check if deletion will not make a double black exception */ 
         if (RED == delete_node->color) {
             need_fixing_tree = 0;
         }
 
-        // Update parent's links to nil node
         if (tree->nil != delete_node->parent) {
             if (delete_node->parent->right == delete_node) {
                 delete_node->parent->right = tree->nil;
@@ -1105,436 +610,95 @@ scl_error_t rbk_delete(rbk_tree_t * const __restrict__ tree, const void * const 
                 delete_node->parent->left = tree->nil;
             }
         } else {
-
-            /*
-             * Selected node was root
-             * Update a new root
-             */
             tree->root = tree->nil;
         }
     }
 
     rbk_tree_node_t *parent_delete_node = delete_node->parent;
 
-    /* Free content of the data pointer */
-    if ((NULL != tree->frd) && (NULL != delete_node->data)) {
-        tree->frd(delete_node->data);
-    }
-
-    /* Free data pointer of selected node */
-    if (NULL != delete_node->data) {
-        free(delete_node->data);
-    }
-
-    /* Set data pointer as `NULL` */
-    delete_node->data = NULL;
-
-    /* Free selected red-black node pointer */
     if (tree->nil != delete_node) {
         free(delete_node);
     }
 
-    /* Set selected red-black node as `NULL` */
     delete_node = tree->nil;
 
-    /* Deacrease tree size  */
     --(tree->size);
 
-    /* Check if fixing is needed */
     if ((0 != need_fixing_tree) && (tree->nil != parent_delete_node)) {
         return rbk_delete_fix_node_up(tree, delete_node_child, parent_delete_node);
     }
 
-    /* Deletion went successfully */
     return SCL_OK;
 }
 
-/**
- * @brief Function to search the inorder predecessor for
- * a specified data type value. Function may fail if
- * red-black tree is not allocated, if it is empty or if data
- * type pointer is not valid. Also function may fail if
- * the red-black tree does not contain specified data pointer
- * 
- * @param tree an allocated red-black tree object
- * @param data pointer to an address of a generic data type
- * @return rbk_tree_node_t* `nil` or inorder predecessor of the
- * node containing (void *data) value.
- */
-static rbk_tree_node_t* rbk_predecessor_node(const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data) {
-    /* Check if input data is valid */
-    if ((NULL == tree) || (tree->nil == tree->root) || (NULL == data)) {
-        return tree->nil;
-    }
-
-    /* Find node containing the data value */
-    rbk_tree_node_t *iterator = rbk_find_node(tree, data);
-
-    /* If node is not in red-black than return `nil` */
-    if (tree->nil == iterator) {
-        return tree->nil;
-    }
-
-    /*
-     * If node has a left child than
-     * find predecessor in left subtree
-     */
-    if (tree->nil != iterator->left) {
-        return rbk_max_node(tree, iterator->left);
-    }
-
-    /* Set parent iterator */
-    rbk_tree_node_t *parent_iterator = iterator->parent;
-
-    /* Find predecessor node */
-    while ((tree->nil != parent_iterator) && (parent_iterator->left == iterator)) {
-        iterator = parent_iterator;
-        parent_iterator = parent_iterator->parent;
-    }
-
-    /* Return predecessor node of the data value node */
-    return parent_iterator;
-}
-
-/**
- * @brief Function to search the inorder successor for
- * a specified data type value. Function may fail if
- * red-black tree is not allocated, if it is empty or if data
- * type pointer is not valid. Also function may fail if
- * the red-black tree does not contain specified data pointer
- * 
- * @param tree an allocated red-black tree object
- * @param data pointer to an address of a generic data type
- * @return rbk_tree_node_t* `nil` or inorder successor of the
- * node containing (void *data) value.
- */
-static rbk_tree_node_t* rbk_successor_node(const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data) {
-    /* Check if input data is valid */
-    if ((NULL == tree) || (tree->nil == tree->root) || (NULL == data)) {
-        return tree->nil;
-    }
-
-    /* Find node containing the data value */
-    rbk_tree_node_t *iterator = rbk_find_node(tree, data);
-
-    /* If node is not in red-black than return `nil` */
-    if (tree->nil == iterator) {
-        return tree->nil;
-    }
-
-    /*
-     * If node has a right child than
-     * find successor in right subtree
-     */
-    if (tree->nil != iterator->right) {
-        return rbk_min_node(tree, iterator->right);
-    }
-
-    /* Set parent iterator */
-    rbk_tree_node_t *parent_iterator = iterator->parent;
-
-    /* Find successor node */
-    while ((tree->nil != parent_iterator) && (parent_iterator->right == iterator)) {
-        iterator = parent_iterator;
-        parent_iterator = parent_iterator->parent;
-    }
-
-    /* Return successor node of the data value node */
-    return parent_iterator;
-}
-
-/**
- * @brief Function to search the inorder predecessor for
- * a specified data type value. Function may fail if
- * red-black tree is not allocated, if it is empty or if data
- * type pointer is not valid. Also function may fail if
- * the red-black tree does not contain specified data pointer
- * 
- * @param tree an allocated red-black tree object
- * @param data pointer to an address of a generic data type
- * @return const void* `NULL` or data of inorder predecessor of the
- * node containing (void *data) value.
- */
-const void* rbk_predecessor_data(const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data) {
-    /* Check if input data is valid */
-    if ((NULL == tree) || (NULL == data)) {
-        return NULL;
-    }
-
-    /* Get the predecessor data or NULL if node is `nil` */
-    return rbk_predecessor_node(tree, data)->data;
-}
-
-/**
- * @brief Function to search the inorder successor for
- * a specified data type value. Function may fail if
- * red-black tree is not allocated, if it is empty or if data
- * type pointer is not valid. Also function may fail if
- * the red-black tree does not contain specified data pointer
- * 
- * @param tree an allocated red-black tree object
- * @param data pointer to an address of a generic data type
- * @return const void* `NULL` or data of inorder successor of the
- * node containing (void *data) value.
- */
-const void* rbk_successor_data(const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data) {
-    /* Check if input data is valid */
-    if ((NULL == tree) || (NULL == data)) {
-        return NULL;
-    }
-
-    /* Get the successor data or `NULL` if node is `nil` */
-    return rbk_successor_node(tree, data)->data;
-}
-
-/**
- * @brief Function to get the lowest common ancestor
- * node of the two specified nodes that contain
- * as data types value (data1 and data2). Function may
- * fail if tree and both data pointers are not allocated
- * and also function may fail if the nodes are not from the
- * current working tree.
- * 
- * @param tree an allocated red-black tree object
- * @param data1 pointer to an address of a generic data
- * @param data2 pointer to an address of a generic data
- * @return rbk_tree_node_t* pointer to a red-black node object that is the lowest
- * common ancestor node of the two nodes containing data1 and data2
- */
-static rbk_tree_node_t* rbk_lowest_common_ancestor_node(const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data1, const void * const __restrict__ data2) {
-    /* Check if input data is valid */
-    if ((NULL == tree) || (NULL == data1) || NULL == data2) {
-        return tree->nil;
-    }
-
-    /* Check if both nodes are in the current working red-black tree */
-    if ((tree->nil == rbk_find_node(tree, data1)) || (tree->nil == rbk_find_node(tree, data2))) {
-        return tree->nil;
-    }
-
-    /* Set iterator pointer */
-    rbk_tree_node_t *iterator = tree->root;
-
-    /* Find the lowest common ancestor */
-    while (tree->nil != iterator) {
-        if ((tree->cmp(iterator->data, data1) >= 1) && (tree->cmp(iterator->data, data2) >= 1)) {
-            iterator = iterator->left;
-        } else if ((tree->cmp(iterator->data, data1) <= -1) && (tree->cmp(iterator->data, data2) <= -1)) {
-            iterator = iterator->right;
-        } else {
-
-            /* Ancestor found */
-            return iterator;
-        }
-    }
-
-    /* Function failed */
-    return tree->nil;
-}
-
-/**
- * @brief Function to get the lowest common ancestor
- * data value of the two specified nodes that contain
- * as data types value (data1 and data2). Function may
- * fail if tree and both data pointers are not allocated
- * and also function may fail if the nodes are not from the
- * current working tree.
- * 
- * @param tree an allocated red-black tree object
- * @param data1 pointer to an address of a generic data
- * @param data2 pointer to an address of a generic data
- * @return const void* pointer to a red-black node object data that is the lowest
- * common ancestor node of the two nodes containing data1 and data2
- */
-const void* rbk_lowest_common_ancestor_data(const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data1, const void * const __restrict__ data2) {
-    /* Check if input data is valid */
-    if ((NULL == tree) || (NULL == data1) || (NULL == data2)) {
-        return NULL;
-    }
-
-    /* Get the lowest common ancestor data or `NULL` if node is `nil` */
-    return rbk_lowest_common_ancestor_node(tree, data1, data2)->data;
-}
-
-/**
- * @brief Helper function for rbk_traverse_inorder function.
- * This method will recursively iterate through all nodes by
- * Left-Root-Right principle.
- * 
- * @param tree an allocated red-black tree object
- * @param root starting point of the red-black tree traversal
- * @param action a pointer function to perform an action on one red-black node object
- */
-static void rbk_traverse_inorder_helper(const rbk_tree_t * const __restrict__ tree, const rbk_tree_node_t * const __restrict__ root, action_func action) {
-    /* Check if current working red-black node is not `nil` */
-    if (tree->nil == root) {
-        return;
-    }
-
-    /* Traverse in the left sub-tree */
-    rbk_traverse_inorder_helper(tree, root->left, action);
-    
-    /* Call action function */
-    action(root->data);
-
-    /* Traverse in the right sub-tree */
-    rbk_traverse_inorder_helper(tree, root->right, action);
-}
-
-/**
- * @brief Function that will traverse all nodes in inorder
- * and will perform any action according to "action" function.
- * Usually action will be a printing function, however you
- * can define a map function to map every node data to another
- * node data (the mapping proccess has to be injective to preserve
- * the red-black prorpety)
- * 
- * @param tree current working red-black tree object
- * @param action a pointer to a function that will perform an action
- * on every red-black node object from current working tree
- * @return scl_error_t enum object for handling errors
- */
-scl_error_t rbk_traverse_inorder(const rbk_tree_t * const __restrict__ tree, action_func action) {
-    /* Check if input data is valid */
+error_t rbk_modify_data(rbk_tree_t * const __restrict__ tree, int32_t old_data, int32_t new_data) {
     if (NULL == tree) {
         return SCL_NULL_RBK;
     }
 
-    if (NULL == action) {
-        return SCL_NULL_ACTION_FUNC;
+    error_t err = rbk_delete(tree, old_data);
+
+    if (SCL_OK != err) {
+        return err;
+    }
+
+    err = rbk_insert(tree, new_data);
+
+    return err;
+}
+
+error_t rbk_delete_max(rbk_tree_t * const __restrict__ tree) {
+    if (NULL == tree) {
+        return SCL_NULL_RBK;
     }
 
     if (tree->nil == tree->root) {
+        return SCL_DELETE_FROM_EMPTY_OBJECT;
+    }
 
-        /* Tree is empty no node to traverse */
+    rbk_tree_node_t *max_node = rbk_max_node(tree, tree->root);
+
+    error_t err = rbk_delete(tree, max_node->data);
+
+    return err;
+}
+
+error_t rbk_delete_min(rbk_tree_t * const __restrict__ tree) {
+    if (NULL == tree) {
+        return SCL_NULL_RBK;
+    }
+
+    if (tree->nil == tree->root) {
+        return SCL_DELETE_FROM_EMPTY_OBJECT;
+    }
+
+    rbk_tree_node_t *min_node = rbk_min_node(tree, tree->root);
+
+    error_t err = rbk_delete(tree, min_node->data);
+
+    return err;
+}
+
+static void rbk_traverse_inorder_helper(const rbk_tree_t * const __restrict__ tree, const rbk_tree_node_t * const __restrict__ root) {
+    if (tree->nil == root) {
+        return;
+    }
+
+    rbk_traverse_inorder_helper(tree, root->left);
+    printf("%d ", root->data);
+    rbk_traverse_inorder_helper(tree, root->right);
+}
+
+error_t rbk_traverse_inorder(const rbk_tree_t * const __restrict__ tree) {
+    if (NULL == tree) {
+        return SCL_NULL_RBK;
+    }
+
+    if (tree->nil == tree->root) {
         printf("(Null)\n");
     }
     else {
-
-        /* Call helper function and traverse all nodes */
-        rbk_traverse_inorder_helper(tree, tree->root, action);
-    }
-
-    return SCL_OK;
-}
-
-/**
- * @brief Helper function for rbk_traverse_preorder function.
- * This method will recursively iterate through all nodes by
- * Root-Left-Right principle.
- * 
- * @param tree an allocated red-black tree object
- * @param root starting point of the red-black tree traversal
- * @param action a pointer function to perform an action on one red-black node object
- */
-static void rbk_traverse_preorder_helper(const rbk_tree_t * const __restrict__ tree, const rbk_tree_node_t * const __restrict__ root, action_func action) {
-    /* Check if current working red-black node is not `nil` */
-    if (tree->nil == root) {
-        return;
-    }
-
-    /* Call action function */
-    action(root->data);
-
-    /* Traverse in the left sub-tree */
-    rbk_traverse_preorder_helper(tree, root->left, action);
-
-    /* Traverse in the right sub-tree */
-    rbk_traverse_preorder_helper(tree, root->right, action);
-}
-
-/**
- * @brief Function that will traverse all nodes in preorder
- * and will perform any action according to "action" function.
- * Usually action will be a printing function, however you
- * can define a map function to map every node data to another
- * node data (the mapping proccess has to be injective to preserve
- * the red-black prorpety)
- * 
- * @param tree current working red-black tree object
- * @param action a pointer to a function that will perform an action
- * on every red-black node object from current working tree
- * @return scl_error_t enum object for handling errors
- */
-scl_error_t rbk_traverse_preorder(const rbk_tree_t * const __restrict__ tree, action_func action) {
-    /* Check if input data is valid */
-    if (NULL == tree) {
-        return SCL_NULL_RBK;
-    }
-
-    if (NULL == action) {
-        return SCL_NULL_ACTION_FUNC;
-    }
-
-    if (tree->nil == tree->root) {
-
-        /* Tree is empty no node to traverse */
-        printf("(Null)\n");
-    } else {
-
-        /* Call helper function and traverse all nodes */
-        rbk_traverse_preorder_helper(tree, tree->root, action);
-    }
-
-    return SCL_OK;
-}
-
-/**
- * @brief Helper function for rbk_traverse_postorder function.
- * This method will recursively iterate through all nodes by
- * Left-Right-Root principle.
- * 
- * @param tree an allocated red-black tree object
- * @param root starting point of the red-black tree traversal
- * @param action a pointer function to perform an action on one red-black node object
- */
-static void rbk_traverse_postorder_helper(const rbk_tree_t * const __restrict__ tree, const rbk_tree_node_t * const __restrict__ root, action_func action) {
-    /* Check if current working red-black node is not `nil` */
-    if (tree->nil == root) {
-        return;
-    }
-
-    /* Traverse in the left sub-tree */
-    rbk_traverse_postorder_helper(tree, root->left, action);
-
-    /* Traverse in the right sub-tree */
-    rbk_traverse_postorder_helper(tree, root->right, action);
-
-    /* Call action function */
-    action(root->data);
-}
-
-/**
- * @brief Function that will traverse all nodes in postorder
- * and will perform any action according to "action" function.
- * Usually action will be a printing function, however you
- * can define a map function to map every node data to another
- * node data (the mapping proccess has to be injective to preserve
- * the red-black prorpety)
- * 
- * @param tree current working red-black tree object
- * @param action a pointer to a function that will perform an action
- * on every red-black node object from current working tree
- * @return scl_error_t enum object for handling errors
- */
-scl_error_t rbk_traverse_postorder(const rbk_tree_t * const __restrict__ tree, action_func action) {
-    /* Check if input data is valid */
-    if (NULL == tree) {
-        return SCL_NULL_RBK;
-    }
-
-    if (NULL == action) {
-        return SCL_NULL_ACTION_FUNC;
-    }
-
-    if (tree->nil == tree->root) {
-
-        /* Tree is empty no node to traverse */
-        printf("(Null)\n");
-    } else {
-
-        /* Call helper function and traverse all nodes */
-        rbk_traverse_postorder_helper(tree, tree->root, action);
+        rbk_traverse_inorder_helper(tree, tree->root);
     }
 
     return SCL_OK;

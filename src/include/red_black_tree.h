@@ -30,7 +30,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdint.h>
-#include "scl_config.h"
+#include "config.h"
 
 /**
  * @brief Color of one red-black tree node
@@ -46,7 +46,7 @@ typedef enum rbk_tree_node_color_s {
  * 
  */
 typedef struct rbk_tree_node_s {
-    void *data;                                                 /* Pointer to data */
+    int32_t data;                                               /* Pointer to data */
     struct rbk_tree_node_s *parent;                             /* Pointer to parent node */
     struct rbk_tree_node_s *left;                               /* Pointer to left child node */
     struct rbk_tree_node_s *right;                              /* Pointer to right child node */
@@ -61,35 +61,25 @@ typedef struct rbk_tree_node_s {
 typedef struct rbk_tree_s {
     rbk_tree_node_t *root;                                      /* Pointer to tree root */
     rbk_tree_node_t *nil;                                       /* Black hole pointer */
-    compare_func cmp;                                           /* Function to compare two elements */
-    free_func frd;                                              /* Function to free content of data */
-    size_t data_size;                                           /* Length in bytes of the data data type */
     size_t size;                                                /* Size of the red-black tree */
 } rbk_tree_t;
 
-rbk_tree_t*             create_rbk                          (compare_func cmp, free_func frd, size_t data_size);
-scl_error_t             free_rbk                            (rbk_tree_t * const __restrict__ tree);
+rbk_tree_t*             create_rbk                          (void);
+error_t                 free_rbk                            (rbk_tree_t * const __restrict__ tree);
 
-scl_error_t             rbk_insert                          (rbk_tree_t * const __restrict__ tree, const void * __restrict__ data);
-const void*             rbk_find_data                       (const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data);
-int32_t                 rbk_data_level                      (const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data);
+error_t                 rbk_insert                          (rbk_tree_t * const __restrict__ tree, int32_t data);
+error_t                 rbk_delete                          (rbk_tree_t * const __restrict__ tree, int32_t data);
+error_t                 rbk_modify_data                     (rbk_tree_t * const __restrict__ tree, int32_t old_data, int32_t new_data);
 
 uint8_t                 is_rbk_empty                        (const rbk_tree_t * const __restrict__ tree);
-const void*             get_rbk_root                        (const rbk_tree_t * const __restrict__ tree);
+int32_t                 get_rbk_root                        (const rbk_tree_t * const __restrict__ tree);
 size_t                  get_rbk_size                        (const rbk_tree_t * const __restrict__ tree);
 
-const void*             rbk_max_data                        (const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ subroot_data);
-const void*             rbk_min_data                        (const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ subroot_data);
+int32_t                 rbk_max_data                        (const rbk_tree_t * const __restrict__ tree);
+int32_t                 rbk_min_data                        (const rbk_tree_t * const __restrict__ tree);
+error_t                 rbk_delete_max                      (rbk_tree_t * const __restrict__ tree);
+error_t                 rbk_delete_min                      (rbk_tree_t * const __restrict__ tree);
 
-scl_error_t             rbk_delete                          (rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data);
-
-const void*             rbk_predecessor_data                (const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data);
-const void*             rbk_successor_data                  (const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data);
-const void*             rbk_lowest_common_ancestor_data     (const rbk_tree_t * const __restrict__ tree, const void * const __restrict__ data1, const void * const __restrict__ data2);
-
-scl_error_t             rbk_traverse_inorder                (const rbk_tree_t * const __restrict__ tree, action_func action);
-scl_error_t             rbk_traverse_preorder               (const rbk_tree_t * const __restrict__ tree, action_func action);
-scl_error_t             rbk_traverse_postorder              (const rbk_tree_t * const __restrict__ tree, action_func action);
-scl_error_t             rbk_traverse_level                  (const rbk_tree_t * const __restrict__ tree, action_func action);
+error_t                 rbk_traverse_inorder                (const rbk_tree_t * const __restrict__ tree);
 
 #endif /* _RED_BLACK_TREE_UTILS_H_ */
