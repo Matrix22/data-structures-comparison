@@ -24,7 +24,7 @@
 
 #include "./include/red_black_tree.h"
 
-rbk_tree_t* create_rbk() {
+rbk_tree_t* create_rbk(void) {
     rbk_tree_t *new_tree = malloc(sizeof(*new_tree));
 
     if (NULL != new_tree) {
