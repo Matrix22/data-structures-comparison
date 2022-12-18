@@ -40,15 +40,7 @@ STATIC_OFILES 			:= 		$(patsubst $(SRC_PATH)/%.c,$(STATIC_OBJ_PATH)/%.o,$(SRC_FI
 INCLUDE_PATH 			:= 		$(SRC_PATH)/include
 HEADER_FILES			:=		$(wildcard $(INCLUDE_PATH)/*.h)
 
-# Installing Dynamic Library info
-INSTALL_PATH 			:= 		/usr/local
-INSTALL_INCLUDE_PATH	:= 		$(INSTALL_PATH)/include
-INSTALL_LIB_PATH 		:= 		$(INSTALL_PATH)/lib
-
-# Unninstall Dynamic Library info
-UNINSTALL_HEADER_FILES	:=		$(patsubst $(INCLUDE_PATH)/%.h,$(INSTALL_INCLUDE_PATH)/%.h,$(HEADER_FILES))
-
-.PHONY: all build clear_term install_header_files install install_dynamic_lib register_dynamic_lib clean uninstall uninstall_header_files uninstall_dynamic_lib
+.PHONY: all build clear_term clean
 
 ### END OF CONSTANT DEFINITIONS ###
 
@@ -120,51 +112,6 @@ $(STATIC_OBJ_PATH)/%.o: $(SRC_PATH)/%.c $(INCLUDE_PATH)/%.h
 	@printf "%s\n" " PASSED"
 
 ### END OF BUILDING ###
-
-### INSTALLING DYNAMIC LIBRARY ###
-
-# Target to load the dynamic librari on system
-install: install_header_files install_dynamic_lib register_dynamic_lib
-
-# Target to copy all header files to default system header location
-install_header_files: $(HEADER_FILES)
-	@$(COPY) -R $^ $(INSTALL_INCLUDE_PATH)
-
-	@printf "Installing Header Files "
-	@printf "%0.30s" $(PADDING)
-	@printf "%s\n" " PASSED"
-
-# Target to copy the dynamic library to default system library location
-install_dynamic_lib: $(DYNAMIC_LIB)
-	@$(COPY) $(DYNAMIC_LIB) $(INSTALL_LIB_PATH)
-
-	@printf "Installing Dynamic Library "
-	@printf "%0.27s" $(PADDING)
-	@printf "%s\n" " PASSED"
-
-# Target to load the dynamic library on system
-register_dynamic_lib: $(INSTALL_LIB_PATH)/$(DYNAMIC_LIB_NAME)
-	@cd $(INSTALL_LIB_PATH)/ && $(LIB_CONF)
-
-	@printf "Loading Dynamic Library "
-	@printf "%0.30s" $(PADDING)
-	@printf "%s\n\n" " PASSED"
-
-### END OF INSTALLING DYNAMIC LIBRARY ###
-
-### REMOVE DYNAMIC LIBRARY ###
-
-uninstall: uninstall_header_files uninstall_dynamic_lib
-	@printf "Library purged successfully\n"
-
-uninstall_header_files: $(UNINSTALL_HEADER_FILES)
-	@sudo $(REMOVE) -rf $^ 
-
-
-uninstall_dynamic_lib: $(INSTALL_LIB_PATH)/$(DYNAMIC_LIB_NAME)
-	@sudo $(REMOVE) -rf $<
-
-### END OF REMOVE DYNAMIC LIBRARY ###
 
 ### CLEANING ###
 
