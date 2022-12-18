@@ -30,74 +30,59 @@
 #include <string.h>
 #include <stdint.h>
 #include <errno.h>
-#include "scl_config.h"
+#include "config.h"
 
 /**
  * @brief Color of one hash table node
  * 
  */
-typedef enum hash_table_node_color_s {
+typedef enum hash_table_linked_node_color_s {
     HASH_RED,                                                   /* Red color of the hash table node */
     HASH_BLACK                                                  /* Black color of the hash table node */
-} hash_table_node_color_t;
+} hash_table_linked_node_color_t;
 
 /**
  * @brief Hash Table Node object definition
  * 
  */
-typedef struct hash_table_node_s {
-    void *key;                                                  /* Pointer to a location of a value representing key of the hash */
-    void *data;                                                 /* Pointer to a location of a value representing data of a node */
-    struct hash_table_node_s *parent;                           /* Pointer to the parent of the current node */
-    struct hash_table_node_s *left;                             /* Pointer to the left child of the current node */
-    struct hash_table_node_s *right;                            /* Pointer to the right child of the current node */
+typedef struct hash_table_linked_node_s {
+    int32_t key;                                                /* Pointer to a location of a value representing key of the hash */
+    struct hash_table_linked_node_s *parent;                    /* Pointer to the parent of the current node */
+    struct hash_table_linked_node_s *left;                      /* Pointer to the left child of the current node */
+    struct hash_table_linked_node_s *right;                     /* Pointer to the right child of the current node */
     uint32_t count;                                             /* Number of nodes with the same data and key value */
-    hash_table_node_color_t color;                              /* Color of the current node */
-} hash_table_node_t;
+    hash_table_linked_node_color_t color;                       /* Color of the current node */
+} hash_table_linked_node_t;
 
 /**
  * @brief Hash Table object definition
  * 
  */
-typedef struct hash_table_s {
-    hash_table_node_t **buckets;                                /* Array of pointers of red black trees */
-    hash_table_node_t *nil;                                     /* Black hole pointer once in never out */
+typedef struct hash_table_linked_s {
+    hash_table_linked_node_t **buckets;                         /* Array of pointers of red black trees */
+    hash_table_linked_node_t *nil;                              /* Black hole pointer once in never out */
     hash_func hash;                                             /* Pointer to a hash function */
-    compare_func cmp_key;                                       /* Pointer to a compare function to compare key values */
-    compare_func cmp_dt;                                        /* Pointer to a compare function to compare data values */
-    free_func frd_key;                                          /* Pointer to a function to delete content of the key */
-    free_func frd_dt;                                           /* Pointer to a function to delete content of the data */
-    size_t key_size;                                            /* Length in bytes of the key data type */
-    size_t data_size;                                           /* Length in bytes of the data data type */
     size_t capacity;                                            /* Number of red black trees within the hash table */
     size_t size;                                                /* Number of total nodes from hash table object*/
-} hash_table_t;
+} hash_table_linked_t;
 
-hash_table_t*           create_hash_table                       (size_t init_capacity, hash_func hash, compare_func cmp_key, compare_func cmp_dt, free_func frd_key, free_func frd_dt, size_t key_size, size_t data_size);
-scl_error_t             free_hash_table                         (hash_table_t * const __restrict__ ht);
+hash_table_linked_t*    create_hash_table                       (size_t init_capacity, hash_func hash);
+error_t                 free_hash_table                         (hash_table_linked_t * const __restrict__ ht);
 
-scl_error_t             hash_table_insert                       (hash_table_t * const __restrict__ ht, const void *key, const void *data);
-const void*             hash_table_find_key_data                (const hash_table_t * const __restrict__ ht, const void * const key, const void * const data);
-const void*             hash_table_find_data                    (const hash_table_t * const __restrict__ ht, const void * const __restrict__ key);
-uint8_t                 hash_table_contains_key_data            (const hash_table_t * const __restrict__ ht, const void * const key, const void * const data);
+error_t                 hash_table_insert                       (hash_table_linked_t * const __restrict__ ht, int32_t key);
+error_t                 hash_table_delete                       (hash_table_linked_t * const __restrict__ ht, int32_t key);
+error_t                 hash_table_modify                       (hash_table_linked_t * const __restrict__ ht, int32_t old_key, int32_t new_key);
+uint8_t                 hash_table_contains                     (const hash_table_linked_t * const __restrict__ ht, int32_t key);
 
-uint8_t                 is_hash_table_empty                     (const hash_table_t * const __restrict__ ht);
-uint8_t                 is_hash_table_bucket_key_empty          (const hash_table_t * const __restrict__ ht, const void * const __restrict__ key);
-size_t                  get_hash_table_size                     (const hash_table_t * const __restrict__ ht);
-size_t                  get_hash_table_capacity                 (const hash_table_t * const __restrict__ ht);
-size_t                  hash_table_count_bucket_elements        (const hash_table_t * const __restrict__ ht, const void * const __restrict__ key);
+uint8_t                 is_hash_table_empty                     (const hash_table_linked_t * const __restrict__ ht);
+size_t                  get_hash_table_size                     (const hash_table_linked_t * const __restrict__ ht);
+size_t                  get_hash_table_capacity                 (const hash_table_linked_t * const __restrict__ ht);
 
-scl_error_t             hash_table_delete_key_data              (hash_table_t * const __restrict__ ht, const void * const key, const void * const data);
-scl_error_t             hash_table_delete_hash                  (hash_table_t * const __restrict__ ht, const void * const __restrict__ key);
-scl_error_t             hash_table_delete_key                   (hash_table_t * const __restrict__ ht, const void * const __restrict__ key);
+int32_t                 hash_table_get_max                      (const hash_table_linked_t * const __restrict__ ht);
+int32_t                 hash_table_get_min                      (const hash_table_linked_t * const __restrict__ ht);
+error_t                 hash_table_delete_max                   (hash_table_linked_t * const __restrict__ ht);
+error_t                 hash_table_delete_min                   (hash_table_linked_t * const __restrict__ ht);
 
-scl_error_t             hash_table_bucket_traverse_inorder      (const hash_table_t * const __restrict__ ht, size_t bucket_index, action_func action);
-scl_error_t             hash_table_traverse_inorder             (const hash_table_t * const __restrict__ ht, action_func action);
-scl_error_t             hash_table_bucket_traverse_preorder     (const hash_table_t * const __restrict__ ht, size_t bucket_index, action_func action);
-scl_error_t             hash_table_traverse_preorder            (const hash_table_t * const __restrict__ ht, action_func action);
-scl_error_t             hash_table_bucket_traverse_postorder    (const hash_table_t * const __restrict__ ht, size_t bucket_index, action_func action);
-scl_error_t             hash_table_traverse_postorder           (const hash_table_t * const __restrict__ ht, action_func action);
-scl_error_t             hash_table_bucket_traverse_level        (const hash_table_t * const __restrict__ ht, size_t bucket_index, action_func action);
-scl_error_t             hash_table_traverse_level               (const hash_table_t * const __restrict__ ht, action_func action);
+error_t                 hash_table_traverse_inorder             (const hash_table_linked_t * const __restrict__ ht);
 
 #endif /* HASH_TABLE_LINKED_UTILS_H_ */

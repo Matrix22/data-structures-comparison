@@ -65,6 +65,7 @@ error_t                 avl_modify_data                     (avl_tree_t * const 
 uint8_t                 is_avl_empty                        (const avl_tree_t * const __restrict__ tree);
 int32_t                 get_avl_root                        (const avl_tree_t * const __restrict__ tree);
 size_t                  get_avl_size                        (const avl_tree_t * const __restrict__ tree);
+uint8_t                 avl_contains                        (const avl_tree_t * const __restrict__ tree, int32_t data);
 
 int32_t                 avl_max_data                        (const avl_tree_t * const __restrict__ tree);
 int32_t                 avl_min_data                        (const avl_tree_t * const __restrict__ tree);

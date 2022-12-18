@@ -309,14 +309,6 @@ static rbk_tree_node_t* rbk_find_node(const rbk_tree_t * const __restrict__ tree
     return tree->nil;
 }
 
-int32_t rbk_find_data(const rbk_tree_t * const __restrict__ tree, int32_t data) {
-    if ((NULL == tree)) {
-        return INT32_MIN;
-    }
-
-    return rbk_find_node(tree, data)->data;
-}
-
 static error_t rbk_swap_nodes(rbk_tree_t * const __restrict__ tree, rbk_tree_node_t * const __restrict__ dest_node, rbk_tree_node_t * const __restrict__ src_node) {
     if ((tree->nil == dest_node) || (tree->nil == src_node)) {
         return SCL_CANNOT_SWAP_DATA;
@@ -405,6 +397,14 @@ size_t get_rbk_size(const rbk_tree_t * const __restrict__ tree) {
     }
 
     return tree->size;
+}
+
+uint8_t rbk_includes(const rbk_tree_t * const __restrict__ tree, int32_t data) {
+    if (NULL == tree) {
+        return 0;
+    }
+
+    return (tree->nil != rbk_find_node(tree, data));
 }
 
 static rbk_tree_node_t* rbk_max_node(const rbk_tree_t * const __restrict__ tree, rbk_tree_node_t * __restrict__ root) {

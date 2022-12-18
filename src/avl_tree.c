@@ -386,6 +386,14 @@ size_t get_avl_size(const avl_tree_t * const __restrict__ tree) {
     return tree->size;
 }
 
+uint8_t avl_contains(const avl_tree_t * const __restrict__ tree, int32_t data) {
+    if (NULL == tree) {
+        return 0;
+    }
+
+    return (tree->nil != avl_find_node(tree, data));
+}
+
 static avl_tree_node_t* avl_max_node(const avl_tree_t * const __restrict__ tree, avl_tree_node_t * __restrict__ root) {
     if (tree->nil != root) {
         while (tree->nil != root->right) {

@@ -74,6 +74,7 @@ error_t                 rbk_modify_data                     (rbk_tree_t * const 
 uint8_t                 is_rbk_empty                        (const rbk_tree_t * const __restrict__ tree);
 int32_t                 get_rbk_root                        (const rbk_tree_t * const __restrict__ tree);
 size_t                  get_rbk_size                        (const rbk_tree_t * const __restrict__ tree);
+uint8_t                 rbk_includes                        (const rbk_tree_t * const __restrict__ tree, int32_t data);
 
 int32_t                 rbk_max_data                        (const rbk_tree_t * const __restrict__ tree);
 int32_t                 rbk_min_data                        (const rbk_tree_t * const __restrict__ tree);
