@@ -48,13 +48,15 @@ run-p3:
 	@printf "Running Algorithm No: 3\n\n"
 	@./test/exec/hash_table_test
 
+run-p4:
+	@printf "Running Algorithm No: 4\n\n"
+	@./test/exec/hash_table_nosize
+
 run-best:
 	@printf "Running Best Algorithm\n\n"
 	@./test/exec/hash_table_test
 
-run-nosize:
-	@printf "Running No Size Algorithm\n\n"
-	@./test/exec/hash_table_nosize
+run-all: run-p1 run-p2 run-p3 run-p4
 
 clean:
 	@cd test && make --no-print-directory clean

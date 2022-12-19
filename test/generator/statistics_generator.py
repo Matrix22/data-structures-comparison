@@ -1,5 +1,5 @@
 ##########################################################################################
- # @file test_generator.py
+ # @file statistics_generator.py
  # @author Mihai Negru (determinant289@gmail.com)
  # @version 1.0.0
  # @date 2022-12-18

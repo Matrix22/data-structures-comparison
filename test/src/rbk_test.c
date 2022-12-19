@@ -1,11 +1,11 @@
 /**
- * @file rbk_test.c
+ * @fin rbk_test.c
  * @author Mihai Negru (determinant289@gmail.com)
  * @version 1.0.0
  * @date 2022-12-18
  * 
  * @copyright Copyright (C) 2022-2023 Mihai Negru <determinant289@gmail.com>
- * This file is part of data-structures-comparison.
+ * This fin is part of data-structures-comparison.
  *
  * data-structures-comparison is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -32,23 +32,24 @@
 
 static const char padding[] = "........................";
 
-static uint8_t run_test(char *load_filename, char *res_filename, char *in_filename, char *out_filename) {
-    FILE *file = NULL;
+static uint8_t run_test(char *in_filename, char *out_filename, char *res_filename) {
+    FILE *fin = NULL;
 
-    if ((file = fopen(load_filename, "r")) == NULL) {
-        printf("File <%s> could NOT be opened for data loaded\n", load_filename);
-        
-        return 1;
-    }
-
-    rbk_tree_t *tree = create_rbk();
-
-    if (tree == NULL) {
-        printf("Tree could NOT be created for testing\n");
-        fclose(file);
+    if ((fin = fopen(in_filename, "r")) == NULL) {
+        printf("File <%s> could NOT be opened for reading\n", in_filename);
 
         return 1;
     }
+
+    FILE *fout = NULL;
+    if ((fout = fopen(out_filename, "w")) == NULL) {
+        printf("Query: Could not open fin for writing queries\n");
+        fclose(fin);
+
+        return 1;
+    }
+
+    /* Queries */
 
     double insert_time = 0;
     double delete_time = 0;
@@ -59,60 +60,27 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
 
     clock_t temp;
 
-    /* Data loader */
+    rbk_tree_t *tree = create_rbk();
+
+    if (tree == NULL) {
+        printf("Tree could NOT be created for testing\n");
+        fclose(fin);
+        fclose(fout);
+
+        return 1;
+    }
 
     int32_t data_size = 0;
-    fscanf(file, "%d", &data_size);
-
-    for (int32_t iter = 0; iter < data_size; ++iter) {
-        int32_t query = 0, data = 0;
-
-        fscanf(file, "%d%d", &query, &data);
-
-        if (query != 0) {
-            printf("Loading data: Wrong query for loading data <%d>\n", query);
-        } else {
-            temp = clock();
-            error_t err = rbk_insert(tree, data);
-            temp = clock() - temp;
-
-            if (err != SCL_OK) {
-                printf("Loading data: Could not insert <%d> in the tree\n", data);
-            } else {
-                insert_time += COMPUTE_TIME(temp);
-            }
-        }
-    }
-
-    fclose(file);
-
-    /* Query execution */
-    if ((file = fopen(in_filename, "r")) == NULL) {
-        printf("Query: Could not open file for reading queries\n");
-        free_rbk(tree);
-
-        return 1;
-    }
-
-    FILE *file_out = NULL;
-    if ((file_out = fopen(out_filename, "w")) == NULL) {
-        printf("Query: Could not open file for writing queries\n");
-        free_rbk(tree);
-        fclose(file);
-
-        return 1;
-    }
-
-    fscanf(file, "%d", &data_size);
+    fscanf(fin, "%d", &data_size);
     for (int32_t iter = 0; iter < data_size; ++iter) {
         int32_t query = 0;
 
-        fscanf(file, "%d", &query);
+        fscanf(fin, "%d", &query);
 
         if (query == 0) {
             int32_t data = 0;
 
-            fscanf(file, "%d", &data);
+            fscanf(fin, "%d", &data);
 
             temp = clock();
             error_t err = rbk_insert(tree, data);
@@ -124,7 +92,7 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
         } else if (query == 1) {
             int32_t data = 0;
 
-            fscanf(file, "%d", &data);
+            fscanf(fin, "%d", &data);
 
             temp = clock();
             error_t err = rbk_delete(tree, data);
@@ -136,19 +104,19 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
         } else if (query == 2) {
             int32_t data = 0;
 
-            fscanf(file, "%d", &data);
+            fscanf(fin, "%d", &data);
 
             temp = clock();
             uint8_t check = rbk_includes(tree, data);
             temp = clock() - temp;
             includes_time += COMPUTE_TIME(temp);
 
-            fprintf(file_out, "%hu\n", check);
+            fprintf(fout, "%hu\n", check);
         } else if (query == 3) {
             int32_t old_data = 0;
             int32_t new_data = 0;
 
-            fscanf(file, "%d%d", &old_data, &new_data);
+            fscanf(fin, "%d%d", &old_data, &new_data);
 
             temp = clock();
             error_t err = rbk_modify_data(tree, old_data, new_data);
@@ -159,7 +127,7 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
             }
         } else if (query == 4) {
             temp = clock();
-            error_t err = rbk_traverse_inorder(tree, file_out);
+            error_t err = rbk_traverse_inorder(tree, fout);
             temp = clock() - temp;
 
             if (err == SCL_OK) {
@@ -170,8 +138,8 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
         }
     }
 
-    fclose(file);
-    fclose(file_out);
+    fclose(fin);
+    fclose(fout);
 
     /* Freeing memory */
     temp = clock();
@@ -184,41 +152,39 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
         free_time += COMPUTE_TIME(temp);
     }
 
-    if ((file = fopen(res_filename, "w")) == NULL) {
-        printf("Could not open file for statistics\n");
+    if ((fout = fopen(res_filename, "w")) == NULL) {
+        printf("Could not open fin for statistics\n");
 
         return 1;
     }
 
-    fprintf(file, "Insert time: %lfsec\n", insert_time);
-    fprintf(file, "Delete time: %lfsec\n", delete_time);
-    fprintf(file, "Includes time: %lfsec\n", includes_time);
-    fprintf(file, "Modify time: %lfsec\n", modify_time);
-    fprintf(file, "Print time: %lfsec\n", print_time);
-    fprintf(file, "Free time: %lfsec\n", free_time);
+    fprintf(fout, "Insert time: %lfsec\n", insert_time);
+    fprintf(fout, "Delete time: %lfsec\n", delete_time);
+    fprintf(fout, "Includes time: %lfsec\n", includes_time);
+    fprintf(fout, "Modify time: %lfsec\n", modify_time);
+    fprintf(fout, "Print time: %lfsec\n", print_time);
+    fprintf(fout, "Free time: %lfsec\n", free_time);
 
-    fclose(file);
+    fclose(fout);
 
     return 0;
 }
 
-static void run_tests(int32_t inf_out_idx) {
-    for (int32_t test_idx = 1; test_idx <= 30; ++test_idx, ++inf_out_idx) {
-        char load_filename[MAX_FILE_NAME];
+static void run_tests(void) {
+    for (int32_t test_idx = 1; test_idx <= 10; ++test_idx) {
         char res_filename[MAX_FILE_NAME];
         char in_filename[MAX_FILE_NAME];
         char out_filename[MAX_FILE_NAME];
         
-        snprintf(load_filename, MAX_FILE_NAME, "load/insert%d.in", test_idx);
-        snprintf(res_filename, MAX_FILE_NAME, "res/rbk/res%d.out", test_idx);
         snprintf(in_filename, MAX_FILE_NAME, "in/test%d.in", test_idx);
-        snprintf(out_filename, MAX_FILE_NAME, "out/test%d.out", inf_out_idx);
+        snprintf(out_filename, MAX_FILE_NAME, "out/test%d.out1", test_idx);
+        snprintf(res_filename, MAX_FILE_NAME, "res/rbk/res%d.out", test_idx);
 
         char title[MAX_TITLE_NAME];
         snprintf(title, MAX_TITLE_NAME, "Test %d", test_idx);
         
         printf("%s %s ", title, padding + strlen(title));
-        uint8_t err = run_test(load_filename, res_filename, in_filename, out_filename);
+        uint8_t err = run_test(in_filename, out_filename, res_filename);
 
         if (err == 1) {
             printf("Error\n");
@@ -229,9 +195,9 @@ static void run_tests(int32_t inf_out_idx) {
 }
 
 int main(void) {
-    run_tests(1);
+    run_tests();
 
-    printf("Red Black Tree Test Solved\n");
+    printf("Red Black Tree Test Solved\n\n");
 
     return 0;
 }

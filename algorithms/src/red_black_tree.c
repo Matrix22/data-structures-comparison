@@ -695,7 +695,7 @@ error_t rbk_traverse_inorder(const rbk_tree_t * const __restrict__ tree, FILE *f
     }
 
     if (tree->nil == tree->root) {
-        printf("(Null)\n");
+        fprintf(fout, "(Null)\n");
     }
     else {
         rbk_traverse_inorder_helper(tree, tree->root, fout);

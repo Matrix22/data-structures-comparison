@@ -612,7 +612,7 @@ error_t avl_traverse_inorder(const avl_tree_t * const __restrict__ tree, FILE *f
     }
 
     if (tree->nil == tree->root) {
-        printf("(Null)\n");
+        fprintf(fout, "(Null)\n");
     }
     else {
         avl_traverse_inorder_helper(tree, tree->root, fout);
