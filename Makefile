@@ -43,19 +43,19 @@ export_dynamic_lib:
 
 run-p1:
 	@printf "Running Algorithm No: 1\n\n"
-	@./test/avl_test
+	@./test/exec/avl_test
 
 run-p2:
 	@printf "Running Algorithm No: 2\n\n"
-	@./test/rbk_test
+	@./test/exec/rbk_test
 
 run-p3:
 	@printf "Running Algorithm No: 3\n\n"
-	@./test/hash_table_test
+	@./test/exec/hash_table_test
 
 run-best:
 	@printf "Running Best Algorithm\n\n"
-	@./test/hash_table_test
+	@./test/exec/hash_table_test
 
 clean:
 	@cd test && make --no-print-directory clean

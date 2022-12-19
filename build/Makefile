@@ -42,7 +42,7 @@ REMOVE					:=		rm
 PADDING 				:= 		............................................................
 
 # Source files info
-SRC_PATH 				:= 		../src
+SRC_PATH 				:= 		../algorithms/src
 SRC_FILES 				:= 		$(wildcard $(SRC_PATH)/*.c)
 
 # Libraries files info

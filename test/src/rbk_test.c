@@ -22,7 +22,7 @@
  * 
  */
 
-#include "../../src/include/red_black_tree.h"
+#include "../../algorithms/src/include/red_black_tree.h"
 
 int main(void) {
     printf("From Red Black Tree\n");

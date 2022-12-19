@@ -32,8 +32,9 @@ CFLAGS 					:= 		-g -Wall -Wextra -Wpedantic \
 
 # Source files info
 SRC_PATH 				:= 		./src
-SRC_FILES 				:= 		$(wildcard $(SRC_PATH)/*.c)
-EXEC_FILES 				:= 		$(patsubst $(SRC_PATH)/%.c,%,$(SRC_FILES))
+
+# Executable files info
+EXEC_PATH 				:= 		./exec
 
 # Libraries files info
 LIBS_PATH 				:= 		../libs
@@ -44,28 +45,31 @@ DYNAMIC_LIB_NAME 		:= 		setsalgos
 # Maximum Padding String
 PADDING 				:= 		............................................................
 
-all: avl_test rbk_test hash_table_test
+all: $(EXEC_PATH) $(EXEC_PATH)/avl_test $(EXEC_PATH)/rbk_test $(EXEC_PATH)/hash_table_test
 	@printf "Finished building tests "
 	@printf "%0.30s" $(PADDING)
 	@printf "%s\n\n" " PASSED"
 
-avl_test: $(SRC_PATH)/avl_test.c
+$(EXEC_PATH):
+	@mkdir -p $(EXEC_PATH)
+
+$(EXEC_PATH)/avl_test: $(SRC_PATH)/avl_test.c
 	@$(CC) -L$(LIBS_PATH) $(CFLAGS) $< -o $@ -l$(DYNAMIC_LIB_NAME)
 	@printf "Building AVL Tree test "
 	@printf "%0.31s" $(PADDING)
 	@printf "%s\n\n" " PASSED"
 
-rbk_test: $(SRC_PATH)/rbk_test.c
+$(EXEC_PATH)/rbk_test: $(SRC_PATH)/rbk_test.c
 	@$(CC) -L$(LIBS_PATH) $(CFLAGS) $< -o $@ -l$(DYNAMIC_LIB_NAME)
 	@printf "Building Red-Black Tree test "
 	@printf "%0.25s" $(PADDING)
 	@printf "%s\n\n" " PASSED"
 
-hash_table_test: $(SRC_PATH)/hash_table_test.c
+$(EXEC_PATH)/hash_table_test: $(SRC_PATH)/hash_table_test.c
 	@$(CC) -L$(LIBS_PATH) $(CFLAGS) $< -o $@ -l$(DYNAMIC_LIB_NAME)
 	@printf "Building Hash Table test "
 	@printf "%0.29s" $(PADDING)
 	@printf "%s\n\n" " PASSED"
 
 clean:
-	@rm -rf $(EXEC_FILES)
+	@rm -rf $(EXEC_PATH)

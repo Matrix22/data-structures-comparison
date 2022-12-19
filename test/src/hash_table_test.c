@@ -22,7 +22,7 @@
  * 
  */
 
-#include "../../src/include/hash_table_linked.h"
+#include "../../algorithms/src/include/hash_table_linked.h"
 
 int main(void) {
     printf("From Hash Table\n");

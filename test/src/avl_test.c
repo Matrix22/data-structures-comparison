@@ -22,7 +22,7 @@
  * 
  */
 
-#include "../../src/include/avl_tree.h"
+#include "../../algorithms/src/include/avl_tree.h"
 
 int main(void) {
     printf("From Avl\n");
