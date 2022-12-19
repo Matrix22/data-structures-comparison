@@ -58,6 +58,5 @@ run-nosize:
 
 clean:
 	@cd test && make --no-print-directory clean
-	@rm -rf rbk_log.txt avl_log.txt hash_table_log.txt
 	@rm -rf libs
 	
