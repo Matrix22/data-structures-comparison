@@ -679,17 +679,17 @@ error_t rbk_delete_min(rbk_tree_t * const __restrict__ tree) {
     return err;
 }
 
-static void rbk_traverse_inorder_helper(const rbk_tree_t * const __restrict__ tree, const rbk_tree_node_t * const __restrict__ root) {
+static void rbk_traverse_inorder_helper(const rbk_tree_t * const __restrict__ tree, const rbk_tree_node_t * const __restrict__ root, FILE *fout) {
     if (tree->nil == root) {
         return;
     }
 
-    rbk_traverse_inorder_helper(tree, root->left);
-    printf("%d ", root->data);
-    rbk_traverse_inorder_helper(tree, root->right);
+    rbk_traverse_inorder_helper(tree, root->left, fout);
+    fprintf(fout, "%d ", root->data);
+    rbk_traverse_inorder_helper(tree, root->right, fout);
 }
 
-error_t rbk_traverse_inorder(const rbk_tree_t * const __restrict__ tree) {
+error_t rbk_traverse_inorder(const rbk_tree_t * const __restrict__ tree, FILE *fout) {
     if (NULL == tree) {
         return SCL_NULL_RBK;
     }
@@ -698,7 +698,8 @@ error_t rbk_traverse_inorder(const rbk_tree_t * const __restrict__ tree) {
         printf("(Null)\n");
     }
     else {
-        rbk_traverse_inorder_helper(tree, tree->root);
+        rbk_traverse_inorder_helper(tree, tree->root, fout);
+        fprintf(fout, "\n");
     }
 
     return SCL_OK;

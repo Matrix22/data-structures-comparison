@@ -456,7 +456,7 @@ error_t hash_table_modify(hash_table_linked_t * const __restrict__ ht, int32_t o
     return hash_table_insert(ht, new_key);
 }
 
-uint8_t hash_table_contains(const hash_table_linked_t * const __restrict__ ht, int32_t key) {
+uint8_t hash_table_includes(const hash_table_linked_t * const __restrict__ ht, int32_t key) {
     if (ht->nil == hash_table_find_node(ht, key)) {
         return 0;
     }
@@ -852,17 +852,17 @@ error_t hash_table_delete(hash_table_linked_t * __restrict__ const ht, int32_t k
     return SCL_OK;
 }
 
-static void hash_table_bucket_traverse_inorder_helper(const hash_table_linked_t * const __restrict__ ht, const hash_table_linked_node_t * const __restrict__ bucket) {
+static void hash_table_bucket_traverse_inorder_helper(const hash_table_linked_t * const __restrict__ ht, const hash_table_linked_node_t * const __restrict__ bucket, FILE *fout) {
     if (ht->nil == bucket) {
         return;
     }
 
-    hash_table_bucket_traverse_inorder_helper(ht, bucket->left);
-    printf("%d ", bucket->key);
-    hash_table_bucket_traverse_inorder_helper(ht, bucket->right);
+    hash_table_bucket_traverse_inorder_helper(ht, bucket->left, fout);
+    fprintf(fout, "%d ", bucket->key);
+    hash_table_bucket_traverse_inorder_helper(ht, bucket->right, fout);
 }
 
-error_t hash_table_bucket_traverse_inorder(const hash_table_linked_t * const __restrict__ ht, size_t bucket_index) {
+error_t hash_table_bucket_traverse_inorder(const hash_table_linked_t * const __restrict__ ht, size_t bucket_index, FILE *fout) {
     if (NULL == ht) {
         return SCL_NULL_HASH_TABLE;
     }
@@ -874,13 +874,13 @@ error_t hash_table_bucket_traverse_inorder(const hash_table_linked_t * const __r
     bucket_index = bucket_index % ht->capacity;
 
     if (ht->nil != ht->buckets[bucket_index]) {
-        hash_table_bucket_traverse_inorder_helper(ht, ht->buckets[bucket_index]);
+        hash_table_bucket_traverse_inorder_helper(ht, ht->buckets[bucket_index], fout);
     }
 
     return SCL_OK;
 }
 
-error_t hash_table_traverse_inorder(const hash_table_linked_t * const __restrict__ ht) {
+error_t hash_table_traverse_inorder(const hash_table_linked_t * const __restrict__ ht, FILE *fout) {
     if (NULL == ht) {
         return SCL_NULL_HASH_TABLE;
     }
@@ -890,12 +890,14 @@ error_t hash_table_traverse_inorder(const hash_table_linked_t * const __restrict
     }
 
     for (size_t iter = 0; iter < ht->capacity; ++iter) {
-        error_t err = hash_table_bucket_traverse_inorder(ht, iter);
+        error_t err = hash_table_bucket_traverse_inorder(ht, iter, fout);
         
         if (SCL_OK != err) {
             return err;
         }
     }
+
+    fprintf(fout, "\n");
 
     return SCL_OK;
 }

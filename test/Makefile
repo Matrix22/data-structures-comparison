@@ -22,13 +22,14 @@
  # 
 ###########################################################################################
 
+# Compiling info
 CC 						:=		gcc
 CFLAGS 					:= 		-g -Wall -Wextra -Wpedantic \
 								-Wformat=2 -Wno-unused-parameter \
 								-Wshadow -Wwrite-strings -Wstrict-prototypes \
 								-Wold-style-definition -Wredundant-decls \
 								-Wnested-externs -Wmissing-include-dirs \
-								-Wjump-misses-init -Wlogical-op -O2
+								-Wjump-misses-init -Wlogical-op
 
 # Source files info
 SRC_PATH 				:= 		./src
@@ -39,13 +40,13 @@ EXEC_PATH 				:= 		./exec
 # Libraries files info
 LIBS_PATH 				:= 		../libs
 
-# Dynamic Library info
-DYNAMIC_LIB_NAME 		:= 		setsalgos
+# Static Library info
+STATIC_LIB_NAME 		:= 		libsetsalgos.a
 
 # Maximum Padding String
 PADDING 				:= 		............................................................
 
-all: $(EXEC_PATH) $(EXEC_PATH)/avl_test $(EXEC_PATH)/rbk_test $(EXEC_PATH)/hash_table_test
+all: $(EXEC_PATH) $(EXEC_PATH)/avl_test $(EXEC_PATH)/rbk_test $(EXEC_PATH)/hash_table_test $(EXEC_PATH)/hash_table_nosize
 	@printf "Finished building tests "
 	@printf "%0.30s" $(PADDING)
 	@printf "%s\n\n" " PASSED"
@@ -54,21 +55,27 @@ $(EXEC_PATH):
 	@mkdir -p $(EXEC_PATH)
 
 $(EXEC_PATH)/avl_test: $(SRC_PATH)/avl_test.c
-	@$(CC) -L$(LIBS_PATH) $(CFLAGS) $< -o $@ -l$(DYNAMIC_LIB_NAME)
+	@$(CC) $(CFLAGS) $< -o $@ $(LIBS_PATH)/$(STATIC_LIB_NAME)
 	@printf "Building AVL Tree test "
 	@printf "%0.31s" $(PADDING)
 	@printf "%s\n\n" " PASSED"
 
 $(EXEC_PATH)/rbk_test: $(SRC_PATH)/rbk_test.c
-	@$(CC) -L$(LIBS_PATH) $(CFLAGS) $< -o $@ -l$(DYNAMIC_LIB_NAME)
+	@$(CC) $(CFLAGS) $< -o $@ $(LIBS_PATH)/$(STATIC_LIB_NAME)
 	@printf "Building Red-Black Tree test "
 	@printf "%0.25s" $(PADDING)
 	@printf "%s\n\n" " PASSED"
 
 $(EXEC_PATH)/hash_table_test: $(SRC_PATH)/hash_table_test.c
-	@$(CC) -L$(LIBS_PATH) $(CFLAGS) $< -o $@ -l$(DYNAMIC_LIB_NAME)
+	@$(CC) $(CFLAGS) $< -o $@ $(LIBS_PATH)/$(STATIC_LIB_NAME)
 	@printf "Building Hash Table test "
 	@printf "%0.29s" $(PADDING)
+	@printf "%s\n\n" " PASSED"
+
+$(EXEC_PATH)/hash_table_nosize: $(SRC_PATH)/hash_table_test_nosize.c
+	@$(CC) $(CFLAGS) $< -o $@ $(LIBS_PATH)/$(STATIC_LIB_NAME)
+	@printf "Building Hash Table No Size test "
+	@printf "%0.21s" $(PADDING)
 	@printf "%s\n\n" " PASSED"
 
 clean:

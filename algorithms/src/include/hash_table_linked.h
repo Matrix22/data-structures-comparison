@@ -72,7 +72,7 @@ error_t                 free_hash_table                         (hash_table_link
 error_t                 hash_table_insert                       (hash_table_linked_t * const __restrict__ ht, int32_t key);
 error_t                 hash_table_delete                       (hash_table_linked_t * const __restrict__ ht, int32_t key);
 error_t                 hash_table_modify                       (hash_table_linked_t * const __restrict__ ht, int32_t old_key, int32_t new_key);
-uint8_t                 hash_table_contains                     (const hash_table_linked_t * const __restrict__ ht, int32_t key);
+uint8_t                 hash_table_includes                     (const hash_table_linked_t * const __restrict__ ht, int32_t key);
 
 uint8_t                 is_hash_table_empty                     (const hash_table_linked_t * const __restrict__ ht);
 size_t                  get_hash_table_size                     (const hash_table_linked_t * const __restrict__ ht);
@@ -83,6 +83,6 @@ int32_t                 hash_table_get_min                      (const hash_tabl
 error_t                 hash_table_delete_max                   (hash_table_linked_t * const __restrict__ ht);
 error_t                 hash_table_delete_min                   (hash_table_linked_t * const __restrict__ ht);
 
-error_t                 hash_table_traverse_inorder             (const hash_table_linked_t * const __restrict__ ht);
+error_t                 hash_table_traverse_inorder             (const hash_table_linked_t * const __restrict__ ht, FILE *fout);
 
 #endif /* HASH_TABLE_LINKED_UTILS_H_ */

@@ -386,7 +386,7 @@ size_t get_avl_size(const avl_tree_t * const __restrict__ tree) {
     return tree->size;
 }
 
-uint8_t avl_contains(const avl_tree_t * const __restrict__ tree, int32_t data) {
+uint8_t avl_includes(const avl_tree_t * const __restrict__ tree, int32_t data) {
     if (NULL == tree) {
         return 0;
     }
@@ -596,17 +596,17 @@ error_t avl_delete_min(avl_tree_t * const __restrict__ tree) {
     return err;
 }
 
-static void avl_traverse_inorder_helper(const avl_tree_t * const __restrict__ tree, const avl_tree_node_t * const __restrict__ root) {
+static void avl_traverse_inorder_helper(const avl_tree_t * const __restrict__ tree, const avl_tree_node_t * const __restrict__ root, FILE *fout) {
     if (tree->nil == root) {
         return;
     }
 
-    avl_traverse_inorder_helper(tree, root->left);
-    printf("%d ", root->data);
-    avl_traverse_inorder_helper(tree, root->right);
+    avl_traverse_inorder_helper(tree, root->left, fout);
+    fprintf(fout, "%d ", root->data);
+    avl_traverse_inorder_helper(tree, root->right, fout);
 }
 
-error_t avl_traverse_inorder(const avl_tree_t * const __restrict__ tree) {
+error_t avl_traverse_inorder(const avl_tree_t * const __restrict__ tree, FILE *fout) {
     if (NULL == tree) {
         return SCL_NULL_AVL;
     }
@@ -615,7 +615,8 @@ error_t avl_traverse_inorder(const avl_tree_t * const __restrict__ tree) {
         printf("(Null)\n");
     }
     else {
-        avl_traverse_inorder_helper(tree, tree->root);
+        avl_traverse_inorder_helper(tree, tree->root, fout);
+        fprintf(fout, "\n");
     }
 
     return SCL_OK;

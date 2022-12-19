@@ -81,6 +81,6 @@ int32_t                 rbk_min_data                        (const rbk_tree_t * 
 error_t                 rbk_delete_max                      (rbk_tree_t * const __restrict__ tree);
 error_t                 rbk_delete_min                      (rbk_tree_t * const __restrict__ tree);
 
-error_t                 rbk_traverse_inorder                (const rbk_tree_t * const __restrict__ tree);
+error_t                 rbk_traverse_inorder                (const rbk_tree_t * const __restrict__ tree, FILE *fout);
 
 #endif /* _RED_BLACK_TREE_UTILS_H_ */

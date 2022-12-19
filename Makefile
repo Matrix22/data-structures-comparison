@@ -26,7 +26,7 @@ DELIMETER = "-------------------------------------------------------------------
 
 build: all
 
-all: build_dynamic_lib build_tests export_dynamic_lib
+all: build_dynamic_lib build_tests
 
 build_dynamic_lib:
 	@cd build && make --no-print-directory all
@@ -35,11 +35,6 @@ build_dynamic_lib:
 build_tests:
 	@cd test && make --no-print-directory all
 	@printf "%0.61s\n\n" $(DELIMETER)
-
-export_dynamic_lib:
-	@export LD_LIBRARY_PATH=libs/:setsalgos
-	@printf "Exporting Dynamic Library\n\n"
-	@printf "%0.61s\n" $(DELIMETER)
 
 run-p1:
 	@printf "Running Algorithm No: 1\n\n"
@@ -57,7 +52,12 @@ run-best:
 	@printf "Running Best Algorithm\n\n"
 	@./test/exec/hash_table_test
 
+run-nosize:
+	@printf "Running No Size Algorithm\n\n"
+	@./test/exec/hash_table_nosize
+
 clean:
 	@cd test && make --no-print-directory clean
+	@rm -rf rbk_log.txt avl_log.txt hash_table_log.txt
 	@rm -rf libs
 	

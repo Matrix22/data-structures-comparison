@@ -11,3 +11,4 @@ res/
 out/
 load/
 test/exec/
+*.txt

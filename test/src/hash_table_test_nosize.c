@@ -1,5 +1,5 @@
 /**
- * @file rbk_test.c
+ * @file hash_table_test_nosize.c
  * @author Mihai Negru (determinant289@gmail.com)
  * @version 1.0.0
  * @date 2022-12-18
@@ -22,17 +22,21 @@
  * 
  */
 
+#include "../../algorithms/src/include/hash_table_linked.h"
 #include <time.h>
-#include "../../algorithms/src/include/red_black_tree.h"
 
-#define MAX_FILE_NAME 30
+#define MAX_FILE_NAME 35
 #define MAX_TITLE_NAME 15
 
 #define COMPUTE_TIME(time_clock) (((double)time_clock) / CLOCKS_PER_SEC)
 
 static const char padding[] = "........................";
 
-static uint8_t run_test(char *load_filename, char *res_filename, char *in_filename, char *out_filename) {
+size_t hash(int32_t key) {
+    return (size_t)key;
+}
+
+static uint8_t run_test(char *load_filename, char *res_filename, char *in_filename) {
     FILE *file = NULL;
 
     if ((file = fopen(load_filename, "r")) == NULL) {
@@ -41,23 +45,22 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
         return 1;
     }
 
-    rbk_tree_t *tree = create_rbk();
-
-    if (tree == NULL) {
-        printf("Tree could NOT be created for testing\n");
-        fclose(file);
-
-        return 1;
-    }
-
     double insert_time = 0;
     double delete_time = 0;
     double includes_time = 0;
     double modify_time = 0;
-    double print_time = 0;
     double free_time = 0;
 
     clock_t temp;
+
+    hash_table_linked_t *ht = create_hash_table(0, hash);
+
+    if (ht == NULL) {
+        printf("Table could NOT be created for testing\n");
+        fclose(file);
+
+        return 1;
+    }
 
     /* Data loader */
 
@@ -73,11 +76,11 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
             printf("Loading data: Wrong query for loading data <%d>\n", query);
         } else {
             temp = clock();
-            error_t err = rbk_insert(tree, data);
+            error_t err = hash_table_insert(ht, data);
             temp = clock() - temp;
 
             if (err != SCL_OK) {
-                printf("Loading data: Could not insert <%d> in the tree\n", data);
+                printf("Loading data: Could not insert <%d> in the table\n", data);
             } else {
                 insert_time += COMPUTE_TIME(temp);
             }
@@ -89,16 +92,7 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
     /* Query execution */
     if ((file = fopen(in_filename, "r")) == NULL) {
         printf("Query: Could not open file for reading queries\n");
-        free_rbk(tree);
-
-        return 1;
-    }
-
-    FILE *file_out = NULL;
-    if ((file_out = fopen(out_filename, "w")) == NULL) {
-        printf("Query: Could not open file for writing queries\n");
-        free_rbk(tree);
-        fclose(file);
+        free_hash_table(ht);
 
         return 1;
     }
@@ -115,7 +109,7 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
             fscanf(file, "%d", &data);
 
             temp = clock();
-            error_t err = rbk_insert(tree, data);
+            error_t err = hash_table_insert(ht, data);
             temp = clock() - temp;
 
             if (err == SCL_OK) {
@@ -127,7 +121,7 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
             fscanf(file, "%d", &data);
 
             temp = clock();
-            error_t err = rbk_delete(tree, data);
+            error_t err = hash_table_delete(ht, data);
             temp = clock() - temp;
 
             if (err == SCL_OK) {
@@ -139,11 +133,9 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
             fscanf(file, "%d", &data);
 
             temp = clock();
-            uint8_t check = rbk_includes(tree, data);
+            hash_table_includes(ht, data);
             temp = clock() - temp;
             includes_time += COMPUTE_TIME(temp);
-
-            fprintf(file_out, "%hu\n", check);
         } else if (query == 3) {
             int32_t old_data = 0;
             int32_t new_data = 0;
@@ -151,31 +143,24 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
             fscanf(file, "%d%d", &old_data, &new_data);
 
             temp = clock();
-            error_t err = rbk_modify_data(tree, old_data, new_data);
+            error_t err = hash_table_modify(ht, old_data, new_data);
             temp = clock() - temp;
 
             if (err == SCL_OK) {
                 modify_time += COMPUTE_TIME(temp);
             }
         } else if (query == 4) {
-            temp = clock();
-            error_t err = rbk_traverse_inorder(tree, file_out);
-            temp = clock() - temp;
-
-            if (err == SCL_OK) {
-                print_time += COMPUTE_TIME(temp);
-            }
+            // Not checking
         } else {
             printf("Queries: Unknown query number <%d>\n", query);
         }
     }
 
     fclose(file);
-    fclose(file_out);
 
     /* Freeing memory */
     temp = clock();
-    error_t err = free_rbk(tree);
+    error_t err = free_hash_table(ht);
     temp = clock() - temp;
 
     if (err != SCL_OK) {
@@ -194,7 +179,6 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
     fprintf(file, "Delete time: %lfsec\n", delete_time);
     fprintf(file, "Includes time: %lfsec\n", includes_time);
     fprintf(file, "Modify time: %lfsec\n", modify_time);
-    fprintf(file, "Print time: %lfsec\n", print_time);
     fprintf(file, "Free time: %lfsec\n", free_time);
 
     fclose(file);
@@ -202,23 +186,21 @@ static uint8_t run_test(char *load_filename, char *res_filename, char *in_filena
     return 0;
 }
 
-static void run_tests(int32_t inf_out_idx) {
-    for (int32_t test_idx = 1; test_idx <= 30; ++test_idx, ++inf_out_idx) {
+static void run_tests(void) {
+    for (int32_t test_idx = 1; test_idx <= 30; ++test_idx) {
         char load_filename[MAX_FILE_NAME];
         char res_filename[MAX_FILE_NAME];
         char in_filename[MAX_FILE_NAME];
-        char out_filename[MAX_FILE_NAME];
         
         snprintf(load_filename, MAX_FILE_NAME, "load/insert%d.in", test_idx);
-        snprintf(res_filename, MAX_FILE_NAME, "res/rbk/res%d.out", test_idx);
+        snprintf(res_filename, MAX_FILE_NAME, "res/hash_table_nosize/res%d.out", test_idx);
         snprintf(in_filename, MAX_FILE_NAME, "in/test%d.in", test_idx);
-        snprintf(out_filename, MAX_FILE_NAME, "out/test%d.out", inf_out_idx);
 
         char title[MAX_TITLE_NAME];
         snprintf(title, MAX_TITLE_NAME, "Test %d", test_idx);
         
         printf("%s %s ", title, padding + strlen(title));
-        uint8_t err = run_test(load_filename, res_filename, in_filename, out_filename);
+        uint8_t err = run_test(load_filename, res_filename, in_filename);
 
         if (err == 1) {
             printf("Error\n");
@@ -229,9 +211,9 @@ static void run_tests(int32_t inf_out_idx) {
 }
 
 int main(void) {
-    run_tests(1);
+    run_tests();
 
-    printf("Red Black Tree Test Solved\n");
+    printf("Hash Table No Size Test Solved\n");
 
     return 0;
 }
