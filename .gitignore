@@ -6,3 +6,5 @@ test.*
 test/avl_test
 test/hash_table_test
 test/rbk_test
+in/
+res/
