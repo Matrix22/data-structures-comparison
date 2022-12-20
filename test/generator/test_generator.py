@@ -99,10 +99,8 @@ def main():
     random.seed()
 
     # Inserted data : Non-unique random numbers in any order
-    for i in range(1, 10, 1):
-        generate_test_random_queries(i, int(10 ** (i // 2 + 1)))
-
-    generate_test_random_queries(10, int(1e5))
+    for i in range(1, 11, 1):
+        generate_test_random_queries(i, int(1e5))
 
 if __name__ == '__main__':
     main()
