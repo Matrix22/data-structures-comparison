@@ -8,4 +8,4 @@ The implementation for every data structure can be found under the **src** folde
 Source files will be compiled from the **build** folder from the project's root, and all the files
 will be linked to a dynamic library and a static library.
 
-For tests the dynamic library will be used
+For tests the static library will be used, because for using the dynamic library, I need to run ldconfig on the library, however I do not know if I have permisions to run on the machine.
