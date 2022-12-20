@@ -176,7 +176,7 @@ static uint8_t run_test(char *in_filename, char *out_filename, char *res_filenam
 }
 
 static void run_tests(void) {
-    for (int32_t test_idx = 1; test_idx <= 10; ++test_idx) {
+    for (int32_t test_idx = 1; test_idx <= 30; ++test_idx) {
         char res_filename[MAX_FILE_NAME];
         char in_filename[MAX_FILE_NAME];
         char out_filename[MAX_FILE_NAME];
